@@ -336,8 +336,15 @@ const PCOR=s=>({"Ativo":"#00B89C","Em proposta":"#F39A00","Pausado":"#585857","C
 const uid=()=>typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():(Date.now().toString(36)+Math.random().toString(36).slice(2));
 const fmtBRL=v=>v==null?"—":"R$ "+Number(v).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
 
-const PROP_STATUS=["Apresentado","Em negociação","Aprovado","Reprovado","Cancelado"];
-const PROP_COR={"Apresentado":"#0BA2D9","Em negociação":"#F39A00","Aprovado":"#00B89C","Reprovado":"#A6533A","Cancelado":"#878685"};
+const PROP_STATUS=["Em desenvolvimento","Apresentado","Em negociação","Aprovado","Reprovado","Cancelado"];
+const PROP_COR={"Em desenvolvimento":"#7A8C9E","Apresentado":"#0BA2D9","Em negociação":"#F39A00","Aprovado":"#00B89C","Reprovado":"#A6533A","Cancelado":"#878685"};
+const PROP_GRUPOS=[
+  {chave:"desenvolvimento",label:"Em desenvolvimento",status:["Em desenvolvimento"],editavel:true},
+  {chave:"apresentado",label:"Apresentado",status:["Apresentado"],editavel:true},
+  {chave:"negociacao",label:"Em negociação",status:["Em negociação"],editavel:true},
+  {chave:"aprovado",label:"Aprovadas",status:["Aprovado"],editavel:false,aprovado:true},
+  {chave:"recusado",label:"Recusadas",status:["Reprovado","Cancelado"],editavel:false}
+];
 const PROP_MEIOS=["Indicação","Instagram","Site","Evento","WhatsApp","Outro"];
 const PROP_INTERV=["ARQ + INT","ARQ","INT","Consultoria","Outro"];
 const PROP_TIPOS=["Residencial","Comercial","Corporativo","Hospitality","Institucional","Outro"];
@@ -1411,21 +1418,18 @@ function vProj(){
   const metrics=isDir
     ?[["Atividades",as.length+" · "+th+"h"],["Custo est.",fmtBRL(custo)],["Sugerido",fmtBRL(sugerido)],["Contratado",vc?fmtBRL(vc):"—"],["Margem",margem!=null?fmtBRL(margem):"—"]]
     :[["Atividades",as.length],["Total horas",th+"h"],["Atrasadas",atr||"0"]];
-  return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
-    <button class="btn-ghost" data-back="1" style="padding:6px 0">‹ Projetos</button>
-  </div>
-  <div style="border-top:2px solid var(--accent);background:var(--panel);padding:20px;margin-bottom:20px">
+  return `<div style="border-top:2px solid var(--accent);background:var(--panel);padding:20px;margin-bottom:20px">
     <div class="row" style="align-items:flex-start">
-      <div>
+      <button data-back="1" title="Voltar para a lista de projetos" style="background:none;border:none;text-align:left;cursor:pointer;padding:0;font-family:inherit;color:inherit">
         <div style="font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin-bottom:6px">${esc(p?.tipologia||"")}${p?.m2?" · "+p.m2+"m²":""}</div>
-        <div style="font-size:20px;font-weight:400;letter-spacing:1px;margin-bottom:4px">${esc(S.proj)}</div>
+        <div style="font-size:20px;font-weight:400;letter-spacing:1px;margin-bottom:4px">‹ ${esc(S.proj)}</div>
         <div style="font-size:12px;color:var(--dim)">${esc(p?.cliente||"—")}</div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <span class="pill" style="background:${PCOR(p?.status||"")};color:#fff">${p?.status||""}</span>
-        ${isDir?`<button class="btn" data-act="revisarorc" title="Reabre a calculadora para alterar ambientes e escopo, e sincroniza o planejamento">Revisar escopo</button>`:""}
-        <button class="btn" data-act="editproj">Editar</button>
-      </div>
+      </button>
+      <span class="pill" style="background:${PCOR(p?.status||"")};color:#fff">${p?.status||""}</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px">
+      ${isDir?`<button class="btn" data-act="revisarorc" title="Reabre a calculadora para alterar ambientes e escopo, e sincroniza o planejamento">Revisar escopo</button>`:""}
+      <button class="btn" data-act="editproj">Editar</button>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:0;border-top:1px solid var(--line);margin-top:16px">
       ${metrics.map(([l,v],i)=>`<div style="padding:12px 14px;${i?"border-left:1px solid var(--line)":""}"><div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:4px">${l}</div><div style="font-size:14px;font-weight:500">${v}</div></div>`).join("")}
@@ -1623,9 +1627,10 @@ function vFinanceiro(){
   const isDir=S.usuario?.role==="diretor";
   if(isDir){if(S.fin.senha&&!S.finUnlocked)return vFinSenha();}
   else{if(!S.fin.senhaFin)return vInicio();if(!S.finUnlocked)return vFinSenha();}
-  const tabs=[["dashboard","Dashboard"],["entradas","Entradas"],["pipeline","Propostas"],["projetos","Honorários"],...(isDir?[["parametros","Parâmetros"]]:[])];
+  const tabs=[["dashboard","Dashboard"],["comercial","Comercial"],["entradas","Entradas"],["pipeline","Propostas"],["projetos","Honorários"],...(isDir?[["parametros","Parâmetros"]]:[])];
   if(!isDir&&S.finTab==="parametros")S.finTab="dashboard";
   const subTabs=`<div class="fin-tabs">${tabs.map(([k,l])=>`<button class="fin-tab ${S.finTab===k?"on":""}" data-fin-tab="${k}">${l}</button>`).join("")}</div>`;
+  if(S.finTab==="comercial") return subTabs+vFinComercial();
   if(S.finTab==="entradas") return subTabs+vFinEntradas();
   if(S.finTab==="pipeline") return subTabs+vFinPipeline();
   if(S.finTab==="projetos") return subTabs+vFinProjetos();
@@ -1895,6 +1900,62 @@ function vFinDashboard(){
   h+=`</div>`;
 
   h+=`</div>`; // fecha charts-grid
+  return h;
+}
+
+function vFinComercial(){
+  const ps=S.fin.propostas||[];
+  const total=ps.length;
+  const aprov=ps.filter(p=>p.status==="Aprovado").length;
+  const recus=ps.filter(p=>p.status==="Reprovado"||p.status==="Cancelado").length;
+  const decididas=aprov+recus;
+  const conv=decididas?Math.round(aprov/decididas*100):0;
+  const fat=ps.filter(p=>p.status==="Aprovado").reduce((s,p)=>s+(+(p.valorFechado||p["valor"+(p.pacoteApres||"P2")]||0)),0);
+  const ticket=aprov?Math.round(fat/aprov):0;
+
+  let h=`<div class="row" style="margin-bottom:16px;flex-wrap:wrap;gap:8px">
+    <div class="sec-title" style="margin:0;border:none;padding:0">Comercial</div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" data-act="newprop">+ manual</button>
+      <button class="btnP" data-act="neworc">+ Novo orçamento</button>
+    </div>
+  </div>`;
+
+  h+=`<div style="display:flex;align-items:center;border-bottom:1px solid var(--line);margin-bottom:20px;flex-wrap:wrap">
+    ${[[total,"Total","var(--txt)"],[conv+"%","Conversão","var(--green)"],[fmtBRL(fat),"Faturamento aprovado","var(--accent)"],[ticket?fmtBRL(ticket):"—","Ticket médio","var(--blue)"]].map(([v,l,c],i)=>`
+    <div style="display:flex;align-items:baseline;gap:7px;padding:8px 18px 8px ${i?'18px':'0'};${i?'border-left:1px solid var(--line);':''}">
+      <div style="font-size:22px;font-weight:700;color:${c};line-height:1">${v}</div>
+      <div style="font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);font-weight:600;white-space:nowrap">${l}</div>
+    </div>`).join("")}
+  </div>`;
+
+  if(!total)return h+`<div class="empty"><div class="empty-title">Nenhuma proposta registrada</div><div class="muted" style="margin-bottom:16px">Use a calculadora para gerar o orçamento — ele aparece aqui agrupado por status.</div><button class="btnP" data-act="neworc">+ Novo orçamento</button></div>`;
+
+  PROP_GRUPOS.forEach(g=>{
+    const lista=ps.filter(p=>g.status.includes(p.status)).sort((a,b)=>(b.num||0)-(a.num||0));
+    h+=`<div class="sec-title" style="display:flex;align-items:center;gap:8px;margin-top:8px">
+      <span>${g.label}</span><span style="font-size:9px;background:var(--panel2);color:var(--dim);padding:1px 7px;letter-spacing:0;text-transform:none;font-weight:400">${lista.length}</span>
+    </div>`;
+    if(!lista.length){h+=`<div class="muted" style="margin-bottom:16px">Nenhuma proposta neste status.</div>`;return;}
+    lista.forEach(p=>{
+      const valorRef=+(p.valorFechado||p["valor"+(p.pacoteApres||"P2")]||p.valorP2||p.valorP1||0);
+      h+=`<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--line)">
+        <span style="font-size:10px;color:var(--dim);flex-shrink:0">#${p.num||"—"}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.cliente||"—")}</div>
+          <div style="font-size:9px;color:var(--dim)">${p.data?new Date(p.data+"T12:00:00").toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"2-digit"}):"—"} · ${esc(p.tipo||"—")}${p.meio?" · "+esc(p.meio):""}</div>
+        </div>
+        <div style="font-size:12px;font-weight:700;white-space:nowrap;color:${g.aprovado?"var(--green)":"var(--txt)"}">${valorRef?fmtBRL(valorRef):"—"}</div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          ${g.aprovado
+            ?(p.projNome?`<span style="font-size:9px;color:var(--green);white-space:nowrap">→ ${esc(p.projNome)}</span>`:`<button class="btnP" style="font-size:9px;padding:4px 8px" data-mkproj="${p.id}" title="Criar projeto com os dados deste orçamento">→ Projeto</button>`)
+            :g.editavel?`<button class="btn" style="font-size:9px;padding:4px 8px" data-editorc="${p.id}">Orçamento</button><button class="btn" style="font-size:9px;padding:4px 8px" data-editprop="${p.id}">Status</button>`
+            :`<span class="pill" style="background:${PROP_COR[p.status]||"#999"};color:#fff;font-size:8px">${p.status}</span>`
+          }
+        </div>
+      </div>`;
+    });
+  });
   return h;
 }
 
@@ -2210,12 +2271,14 @@ function clienteModal(d){
 }
 
 // ===== CALCULADORA DE ORÇAMENTO =====
+const ORC_PARAM_KEYS=["lucro","impostos","negociacao","taxaCartao1x","taxaCartao10x","custoFixoHora"];
+function orcParamsDefault(){const p={};ORC_PARAM_KEYS.forEach(k=>p[k]=S.fin[k]||0);return p;}
 function startOrc(){
   const esc0={};ORC_ENT.forEach(e=>esc0[e.k]={p1:e.p1,p2:e.p2,p3:e.p3});
-  S.orc={step:0,
+  S.orc={step:0,travado:false,
     cliente:{nome:"",contato:"",tipo:PROP_TIPOS[0],interv:PROP_INTERV[0],meio:PROP_MEIOS[0],validade:"15 dias"},
     ambientes:[{amb:AMB_LIST[0],m2:0,padrao:"Médio",qtd:1}],
-    esc:esc0,terc:[],tercTpl:""};
+    esc:esc0,terc:[],tercTpl:"",params:orcParamsDefault()};
   loadTercTemplate("Residencial");
   S.modal={t:"orc",d:{}};
 }
@@ -2226,7 +2289,7 @@ function loadTercTemplate(tpl){
   for(let i=0;i<3;i++)S.orc.terc.push({nome:"",qtd:1,unit:0,p1:0,p2:0,p3:0,custom:1});
 }
 function orcCalc(o){
-  const f=S.fin;
+  const f={...S.fin,...(o.params||{})};
   const mult=p=>f.multi[p]||1;
   const m2p=o.ambientes.reduce((s,a)=>s+(+a.m2||0)*mult(a.padrao)*(+a.qtd||1),0);
   const parts=S.equipe.map(e=>({e,pct:+(f.participacao?.[e.pessoa]||0)}));
@@ -2250,7 +2313,7 @@ function orcCalc(o){
     const c1=den1>0?base/den1/(1-folga):tabela;
     return {horas,mo,terc,custo,base,piso,tabela,c1,c10,liq:base,m2:m2p?tabela/m2p:0};
   };
-  return {m2p,taxaMedia,p1:pac('p1'),p2:pac('p2'),p3:pac('p3')};
+  return {m2p,taxaMedia,params:f,p1:pac('p1'),p2:pac('p2'),p3:pac('p3')};
 }
 
 function orcModal(){
@@ -2275,22 +2338,23 @@ function orcModal(){
   }
 
   if(o.step===1){
+    const dis1=o.travado?"disabled":"";
     body=`<div style="display:flex;gap:6px;margin-bottom:6px;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px">
       <div style="flex:2">Ambiente</div><div style="width:56px">m²</div><div style="width:76px">Padrão</div><div style="width:44px">Qtd</div><div style="width:56px;text-align:right">m² pond.</div><div style="width:20px"></div>
     </div>`;
     o.ambientes.forEach((a,i)=>{
       const mp=(+a.m2||0)*(S.fin.multi[a.padrao]||1)*(+a.qtd||1);
       body+=`<div style="display:flex;gap:6px;margin-bottom:6px;align-items:center">
-        <select class="inp" data-amb-f="amb" data-i="${i}" style="flex:2;padding:6px 8px;font-size:11px">${AMB_LIST.map(x=>`<option ${x===a.amb?"selected":""}>${x}</option>`).join("")}</select>
-        <input class="inp" data-amb-f="m2" data-i="${i}" type="number" value="${a.m2||""}" style="width:56px;padding:6px;font-size:11px;text-align:center"/>
-        <select class="inp" data-amb-f="padrao" data-i="${i}" style="width:76px;padding:6px 4px;font-size:11px">${Object.keys(S.fin.multi).map(x=>`<option ${x===a.padrao?"selected":""}>${x}</option>`).join("")}</select>
-        <input class="inp" data-amb-f="qtd" data-i="${i}" type="number" value="${a.qtd||1}" style="width:44px;padding:6px;font-size:11px;text-align:center"/>
+        <select class="inp" data-amb-f="amb" data-i="${i}" ${dis1} style="flex:2;padding:6px 8px;font-size:11px">${AMB_LIST.map(x=>`<option ${x===a.amb?"selected":""}>${x}</option>`).join("")}</select>
+        <input class="inp" data-amb-f="m2" data-i="${i}" type="number" value="${a.m2||""}" ${dis1} style="width:56px;padding:6px;font-size:11px;text-align:center"/>
+        <select class="inp" data-amb-f="padrao" data-i="${i}" ${dis1} style="width:76px;padding:6px 4px;font-size:11px">${Object.keys(S.fin.multi).map(x=>`<option ${x===a.padrao?"selected":""}>${x}</option>`).join("")}</select>
+        <input class="inp" data-amb-f="qtd" data-i="${i}" type="number" value="${a.qtd||1}" ${dis1} style="width:44px;padding:6px;font-size:11px;text-align:center"/>
         <div style="width:56px;text-align:right;font-weight:700;color:var(--green);font-size:11px">${n2(mp)}</div>
-        <button data-orc-amb-del="${i}" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:13px;padding:0 3px">✕</button>
+        ${o.travado?"":`<button data-orc-amb-del="${i}" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:13px;padding:0 3px">✕</button>`}
       </div>`;
     });
-    body+=`<button class="btn" data-orc-amb-add="1" style="width:100%;border-style:dashed;color:var(--dim);margin-top:4px">+ adicionar ambiente</button>
-    <div style="display:flex;justify-content:space-between;padding:10px 0 0;margin-top:10px;border-top:1px solid var(--line)">
+    body+=o.travado?"":`<button class="btn" data-orc-amb-add="1" style="width:100%;border-style:dashed;color:var(--dim);margin-top:4px">+ adicionar ambiente</button>`;
+    body+=`<div style="display:flex;justify-content:space-between;padding:10px 0 0;margin-top:10px;border-top:1px solid var(--line)">
       <span style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim)">Total m² ponderado</span>
       <span style="font-weight:700;font-size:15px;color:var(--green)">${n2(c.m2p)} m²</span>
     </div>
@@ -2298,8 +2362,17 @@ function orcModal(){
   }
 
   if(o.step===2){
-    const tg=(on,attr)=>`<button ${attr} style="width:34px;height:20px;border:1px solid ${on?'#155e4a':'var(--line)'};background:${on?'#0a2e25':'var(--panel2)'};color:${on?'var(--green)':'var(--dim)'};font-size:8px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0">${on?'SIM':'NÃO'}</button>`;
-    body=`<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);font-weight:700;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--line)">Entregáveis por pacote</div>
+    const dis=o.travado?"disabled":"";
+    const tg=(on,attr)=>`<button ${attr} ${dis} style="width:34px;height:20px;border:1px solid ${on?'#155e4a':'var(--line)'};background:${on?'#0a2e25':'var(--panel2)'};color:${on?'var(--green)':'var(--dim)'};font-size:8px;font-weight:700;cursor:${o.travado?'default':'pointer'};font-family:inherit;flex-shrink:0;opacity:${o.travado?.5:1}">${on?'SIM':'NÃO'}</button>`;
+    const pl={lucro:"Lucro %",impostos:"Impostos %",negociacao:"Negociação %",taxaCartao1x:"Cartão 1x %",taxaCartao10x:"Cartão 10x %",custoFixoHora:"Custo fixo R$/h"};
+    body=`<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);font-weight:700;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
+      <span>Parâmetros deste orçamento</span>
+      <span style="font-size:8px;color:var(--dim);text-transform:none;letter-spacing:0">valores base em Financeiro → Parâmetros</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px;margin-bottom:16px">
+      ${ORC_PARAM_KEYS.map(k=>`<div><label class="l" style="font-size:8px">${pl[k]}</label><input class="inp" data-orc-param="${k}" type="number" step="0.1" value="${o.params?.[k]??0}" ${dis} style="padding:6px 8px;font-size:11px;opacity:${o.travado?.6:1}"/></div>`).join("")}
+    </div>
+    <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);font-weight:700;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--line)">Entregáveis por pacote</div>
     <div style="display:flex;align-items:center;gap:8px;padding-bottom:4px;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid var(--line)">
       <div style="flex:1">Entregável</div><div style="width:48px;text-align:right">horas</div><div style="width:34px;text-align:center">P1</div><div style="width:34px;text-align:center">P2</div><div style="width:34px;text-align:center">P3</div>
     </div>`;
@@ -2315,7 +2388,7 @@ function orcModal(){
     });
     body+=`<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);font-weight:700;margin:16px 0 6px;padding-bottom:5px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
       <span>Terceiros e variáveis</span>
-      <span style="display:flex;gap:4px">${Object.keys(S.fin.tercTemplates||{}).map(t=>`<button data-orc-tpl="${t}" style="font-size:8px;padding:3px 7px;border:1px solid ${o.tercTpl===t?'var(--accent)':'var(--line)'};background:${o.tercTpl===t?'rgba(166,83,58,.12)':'var(--panel2)'};color:${o.tercTpl===t?'var(--accent)':'var(--dim)'};cursor:pointer;font-family:inherit;text-transform:none;letter-spacing:0">${t}</button>`).join('')}</span>
+      <span style="display:flex;gap:4px">${o.travado?"":Object.keys(S.fin.tercTemplates||{}).map(t=>`<button data-orc-tpl="${t}" style="font-size:8px;padding:3px 7px;border:1px solid ${o.tercTpl===t?'var(--accent)':'var(--line)'};background:${o.tercTpl===t?'rgba(166,83,58,.12)':'var(--panel2)'};color:${o.tercTpl===t?'var(--accent)':'var(--dim)'};cursor:pointer;font-family:inherit;text-transform:none;letter-spacing:0">${t}</button>`).join('')}</span>
     </div>
     <div style="display:flex;align-items:center;gap:6px;padding-bottom:4px;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px">
       <div style="flex:1.6">Item</div><div style="width:48px;text-align:center">Qtd</div><div style="width:64px;text-align:right">R$ unit.</div><div style="width:58px;text-align:right">Subt.</div><div style="width:34px;text-align:center">P1</div><div style="width:34px;text-align:center">P2</div><div style="width:34px;text-align:center">P3</div><div style="width:16px"></div>
@@ -2323,21 +2396,21 @@ function orcModal(){
     o.terc.forEach((t,i)=>{
       const sub=(+t.qtd||0)*(+t.unit||0);
       body+=`<div style="display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--line)">
-        <input class="inp" data-terc-f="nome" data-i="${i}" value="${esc(t.nome)}" placeholder="${t.custom?'item personalizado…':''}" style="flex:1.6;padding:5px 7px;font-size:11px"/>
-        <input class="inp" data-terc-f="qtd" data-i="${i}" type="number" value="${t.qtd||""}" style="width:48px;padding:5px;font-size:11px;text-align:center"/>
-        <input class="inp" data-terc-f="unit" data-i="${i}" type="number" step="0.01" value="${t.unit||""}" style="width:64px;padding:5px;font-size:11px;text-align:right"/>
+        <input class="inp" data-terc-f="nome" data-i="${i}" value="${esc(t.nome)}" placeholder="${t.custom?'item personalizado…':''}" ${dis} style="flex:1.6;padding:5px 7px;font-size:11px"/>
+        <input class="inp" data-terc-f="qtd" data-i="${i}" type="number" value="${t.qtd||""}" ${dis} style="width:48px;padding:5px;font-size:11px;text-align:center"/>
+        <input class="inp" data-terc-f="unit" data-i="${i}" type="number" step="0.01" value="${t.unit||""}" ${dis} style="width:64px;padding:5px;font-size:11px;text-align:right"/>
         <div style="width:58px;text-align:right;font-size:10px;font-weight:700">${sub?fmtBRL(sub).replace(',00',''):'—'}</div>
         ${tg(t.p1,`data-terc-tg="${i}|p1"`)}${tg(t.p2,`data-terc-tg="${i}|p2"`)}${tg(t.p3,`data-terc-tg="${i}|p3"`)}
-        <button data-terc-del="${i}" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;padding:0 2px">✕</button>
+        ${o.travado?"":`<button data-terc-del="${i}" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;padding:0 2px">✕</button>`}
       </div>`;
     });
-    body+=`<button class="btn" data-orc-terc-add="1" style="width:100%;border-style:dashed;color:var(--dim);margin-top:6px">+ adicionar item</button>
-    <div style="display:flex;justify-content:flex-end;gap:14px;padding-top:8px;font-size:10px">
+    body+=o.travado?"":`<button class="btn" data-orc-terc-add="1" style="width:100%;border-style:dashed;color:var(--dim);margin-top:6px">+ adicionar item</button>`;
+    body+=`<div style="display:flex;justify-content:flex-end;gap:14px;padding-top:8px;font-size:10px">
       <span style="color:var(--dim)">P1: <b style="color:var(--txt)">${fmtBRL(c.p1.terc)}</b></span>
       <span style="color:var(--dim)">P2: <b style="color:var(--txt)">${fmtBRL(c.p2.terc)}</b></span>
       <span style="color:var(--accent)">P3: <b>${fmtBRL(c.p3.terc)}</b></span>
     </div>
-    <div style="font-size:9px;color:var(--dim);margin-top:6px;line-height:1.5">Ao trocar o template, itens e valores são recarregados (edições manuais são perdidas). Alterações aqui não mexem no template salvo.</div>`;
+    <div style="font-size:9px;color:var(--dim);margin-top:6px;line-height:1.5">${o.travado?"Orçamento aprovado — valores travados.":"Ao trocar o template, itens e valores são recarregados (edições manuais são perdidas). Alterações aqui não mexem no template salvo."}</div>`;
   }
 
   if(o.step===3){
@@ -2353,13 +2426,13 @@ function orcModal(){
     <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);font-weight:700;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--line)">Detalhe — P2 Completo</div>
     ${[["Custo mão de obra ("+n2(c.p2.horas)+"h × R$ "+n2(c.taxaMedia)+"/h)",fmtBRL(c.p2.mo)],
        ["Terceiros",fmtBRL(c.p2.terc)],
-       ["+ Lucro "+S.fin.lucro+"% → preço base",fmtBRL(c.p2.base)],
-       ["Piso à vista/PIX (gross-up imposto "+S.fin.impostos+"%)",fmtBRL(c.p2.piso)]].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:10px;border-bottom:1px solid var(--line);color:var(--dim)"><span>${l}</span><span style="color:var(--txt)">${v}</span></div>`).join('')}
-    <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:11px;border-bottom:1px solid var(--line);font-weight:700"><span>Preço de tabela (folga ${S.fin.negociacao}%)</span><span style="color:var(--green)">${fmtBRL(Math.round(c.p2.tabela))}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:10px;border-bottom:1px solid var(--line);color:var(--dim)"><span>Cartão 1x/débito (taxa ${S.fin.taxaCartao1x}%)</span><span style="color:var(--txt)">${fmtBRL(Math.round(c.p2.c1))}</span></div>
-    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:10px;border-bottom:1px solid var(--line);color:var(--dim)"><span>Cartão 10x (taxa ${S.fin.taxaCartao10x}%)</span><span style="color:var(--txt)">${fmtBRL(Math.round(c.p2.c10))} · 10× ${fmtBRL(Math.round(c.p2.c10/10))}</span></div>
+       ["+ Lucro "+c.params.lucro+"% → preço base",fmtBRL(c.p2.base)],
+       ["Piso à vista/PIX (gross-up imposto "+c.params.impostos+"%)",fmtBRL(c.p2.piso)]].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:10px;border-bottom:1px solid var(--line);color:var(--dim)"><span>${l}</span><span style="color:var(--txt)">${v}</span></div>`).join('')}
+    <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:11px;border-bottom:1px solid var(--line);font-weight:700"><span>Preço de tabela (folga ${c.params.negociacao}%)</span><span style="color:var(--green)">${fmtBRL(Math.round(c.p2.tabela))}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:10px;border-bottom:1px solid var(--line);color:var(--dim)"><span>Cartão 1x/débito (taxa ${c.params.taxaCartao1x}%)</span><span style="color:var(--txt)">${fmtBRL(Math.round(c.p2.c1))}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:10px;border-bottom:1px solid var(--line);color:var(--dim)"><span>Cartão 10x (taxa ${c.params.taxaCartao10x}%)</span><span style="color:var(--txt)">${fmtBRL(Math.round(c.p2.c10))} · 10× ${fmtBRL(Math.round(c.p2.c10/10))}</span></div>
     <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:10px;color:var(--dim)"><span>Você recebe líquido (à vista ou cartão)</span><span style="color:var(--green);font-weight:700">${fmtBRL(c.p2.liq)}</span></div>
-    <div style="font-size:9px;color:var(--dim);margin-top:10px;line-height:1.5">O gross-up garante o mesmo lucro real à vista ou no cartão. Parâmetros editáveis em Financeiro → Parâmetros.</div>`;
+    <div style="font-size:9px;color:var(--dim);margin-top:10px;line-height:1.5">O gross-up garante o mesmo lucro real à vista ou no cartão. Parâmetros ajustáveis no Passo 3 · Escopo deste orçamento.</div>`;
   }
 
   return `<div class="ov"><div class="modal" style="max-width:640px" data-stop="1">
@@ -2367,13 +2440,14 @@ function orcModal(){
       <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:700">${o.editId?"Editar orçamento":"Novo orçamento"}</div>
       <button data-orc-close="1" style="background:none;border:none;color:var(--dim);font-size:16px;cursor:pointer">✕</button>
     </div>
+    ${o.travado?`<div style="font-size:11px;color:var(--yellow);background:#2a2015;padding:10px 12px;margin-bottom:14px;border-left:3px solid var(--yellow)">🔒 Proposta aprovada pelo cliente — valores travados. Só consulta, sem edição.</div>`:""}
     <div style="display:flex;margin-bottom:16px">${stepBtns}</div>
     ${body}
     <div style="display:flex;justify-content:space-between;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--line)">
       <button class="btn" data-orc-step="${Math.max(0,o.step-1)}" ${o.step===0?'style="visibility:hidden"':''}>← Voltar</button>
       ${o.step<3
         ?`<button class="btnP" data-orc-step="${o.step+1}">Avançar →</button>`
-        :`<button class="btnP" data-orc-launch="1">${o.editId?"Salvar alterações →":"Lançar orçamento →"}</button>`}
+        :(o.travado?`<button class="btn" data-orc-close="1">Fechar</button>`:`<button class="btnP" data-orc-launch="1">${o.editId?"Salvar alterações →":"Lançar orçamento →"}</button>`)}
     </div>
   </div></div>`;
 }
@@ -2381,12 +2455,13 @@ function orcModal(){
 function startOrcFrom(p){
   const esc0={};ORC_ENT.forEach(e=>esc0[e.k]={p1:e.p1,p2:e.p2,p3:e.p3});
   const o=p.orc||{};
-  S.orc={step:0,editId:p.id,
+  S.orc={step:0,editId:p.id,travado:p.status==="Aprovado",
     cliente:{nome:p.cliente||"",contato:"",tipo:p.tipo||PROP_TIPOS[0],interv:p.interv||PROP_INTERV[0],meio:p.meio||PROP_MEIOS[0],validade:"15 dias",...(o.cliente||{})},
     ambientes:(o.ambientes||[]).map(a=>({...a})),
     esc:Object.assign(esc0,JSON.parse(JSON.stringify(o.esc||{}))),
     terc:(o.terc||[]).map(t=>({...t})),
-    tercTpl:o.tercTpl||""};
+    tercTpl:o.tercTpl||"",
+    params:{...orcParamsDefault(),...(o.params||{})}};
   if(!S.orc.ambientes.length)S.orc.ambientes.push({amb:AMB_LIST[0],m2:0,padrao:"Médio",qtd:1});
   if(!S.orc.terc.length){
     const tpl=(S.fin.tercTemplates||{})[p.tipo]?p.tipo:"Residencial";
@@ -2443,7 +2518,7 @@ function launchOrc(){
   else if(o.cliente.contato&&!cli.tel)cli.tel=o.cliente.contato;
   if(!S.fin.propostas)S.fin.propostas=[];
   const rnd=v=>Math.round(v);
-  const snap={cliente:{...o.cliente},ambientes:o.ambientes.map(a=>({...a})),esc:JSON.parse(JSON.stringify(o.esc)),terc:o.terc.map(t=>({...t})),tercTpl:o.tercTpl};
+  const snap={cliente:{...o.cliente},ambientes:o.ambientes.map(a=>({...a})),esc:JSON.parse(JSON.stringify(o.esc)),terc:o.terc.map(t=>({...t})),tercTpl:o.tercTpl,params:{...o.params}};
   const hoje=new Date().toISOString().slice(0,10);
   if(o.editId){
     const p=S.fin.propostas.find(x=>x.id===o.editId);
@@ -3200,7 +3275,8 @@ function bind(){
     A("[data-orc-terc-add]",()=>{S.orc.terc.push({nome:"",qtd:1,unit:0,p1:1,p2:1,p3:1,custom:1});r();});
     document.querySelectorAll("[data-terc-del]").forEach(b=>b.onclick=()=>{S.orc.terc.splice(+b.dataset.tercDel,1);r();});
     document.querySelectorAll("[data-orc-tpl]").forEach(b=>b.onclick=()=>{loadTercTemplate(b.dataset.orcTpl);r();});
-    A("[data-orc-launch]",()=>launchOrc());
+    document.querySelectorAll("[data-orc-param]").forEach(el=>el.onchange=()=>{S.orc.params[el.dataset.orcParam]=+String(el.value).replace(",",".")||0;r();});
+    A("[data-orc-launch]",()=>{if(!S.orc.travado)launchOrc();});
   }
 
   // CONTRATOS / ENTRADAS
