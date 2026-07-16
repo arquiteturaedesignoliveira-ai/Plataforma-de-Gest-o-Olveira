@@ -324,8 +324,19 @@ const CAT=[{"n":1,"at":"Agendar visita e levantamento","ent":"Cronograma da visi
 const CATN={};CAT.forEach(c=>CATN[c.n]=c);
 const BLOCOS=["01 Imersão","02 Conceito","03 Layout","04 Volumetria e Materialidade","05 Projeto Desenvolvido","06 Pré-Executivo e Viabilidade","07 Projeto Legal","08 Compatibilização","09 Executivo de Arquitetura","10 Executivo de Interiores","11 Suporte à Execução"];
 const BCOR={"01":"#057B9E","02":"#0BA2D9","03":"#2FF0D0","04":"#00B89C","05":"#8D1CD1","06":"#B24BE6","07":"#F39A00","08":"#F3B200","09":"#FFAE1A","10":"#C94D31","11":"#A6533A"};
+// Atividades sintéticas de revisão (interna/externa) — uma para cada etapa. Não entram
+// em CAT/PRESETS (não são criadas automaticamente); só aparecem no seletor de "+ Atividade".
+const CAT_REV=[];
+BLOCOS.forEach((b,i)=>{
+  const et=b.slice(0,2);
+  CAT_REV.push({n:900+i*2,at:"Revisão interna",ent:"Ajustes internos (arquiteto/diretor)",et,bloco:b,prod:"Interna",val:"Revisão",oper:true,horas:2,revisao:"interna"});
+  CAT_REV.push({n:901+i*2,at:"Revisão externa (cliente/complementares)",ent:"Ajustes solicitados por terceiros",et,bloco:b,prod:"Aprovação",val:"Revisão",oper:true,horas:3,revisao:"externa"});
+});
+CAT_REV.forEach(c=>CATN[c.n]=c);
 const corN=n=>CATN[n]?BCOR[CATN[n].et]||"#8C8078":"#8C8078";
 const entOf=n=>CATN[n]?.ent||"",atOf=n=>CATN[n]?.at||"",blocoOf=n=>CATN[n]?.bloco||"",prodOf=n=>CATN[n]?.prod||"",valOf=n=>CATN[n]?.val||"",horasOf=n=>CATN[n]?.horas||0,operOf=n=>!!CATN[n]?.oper;
+const isMarco=n=>{const c=CATN[n];return !!c&&c.oper&&/^Marco/.test(c.val||"");};
+const isRevisao=n=>!!CATN[n]?.revisao;
 const PRESETS={"Novo ARQ+INT":CAT.map(c=>c.n),"Reforma ARQ+INT":CAT.filter(c=>c.n!==5).map(c=>c.n)};
 const TIPOS=Object.keys(PRESETS);
 const STATUS=["Planejada","Em andamento","Aguardando cliente","Concluída","Cancelada"];
@@ -1407,7 +1418,7 @@ function vProjetos(tl){
 function vProj(){
   const p=S.projs.find(x=>x.nome===S.proj);
   const as=S.ativ.filter(a=>a.projeto===S.proj);
-  const vis=as.filter(a=>S.verOper||!operOf(a.n));
+  const vis=as.filter(a=>S.verOper||!operOf(a.n)||isMarco(a.n));
   const th=as.reduce((s,a)=>s+a.horas,0);
   const atr=as.filter(isAtrasada).length;
   const groups=BLOCOS.map(b=>({b,it:vis.filter(a=>blocoOf(a.n)===b)})).filter(g=>g.it.length);
@@ -1436,6 +1447,7 @@ function vProj(){
       ${metrics.map(([l,v],i)=>`<div style="padding:12px 14px;${i?"border-left:1px solid var(--line)":""}"><div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:4px">${l}</div><div style="font-size:14px;font-weight:500">${v}</div></div>`).join("")}
     </div>
   </div>
+  ${vProjCronograma(as)}
   <div class="row" style="margin-bottom:14px;flex-wrap:wrap;gap:8px">
     <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim);letter-spacing:.5px;cursor:pointer"><input type="checkbox" id="vo" ${S.verOper?"checked":""}/> Mostrar operacionais</label>
     <button class="btnP" data-act="addativ">+ Atividade</button>
@@ -1461,19 +1473,57 @@ function vProj(){
         <button class="btn-ghost" data-deletapa="${et}" style="color:var(--red);font-size:9px;flex-shrink:0;padding:8px 10px">Excluir</button>
       </div>
       <div class="etapa-body${isOpen?'':' closed'}">`+
-    g.it.map(a=>{const atr=isAtrasada(a);return`<div class="erow${atr?" atrasada":""}">
+    g.it.map(a=>{
+      const atr=isAtrasada(a);
+      const marco=isMarco(a.n);
+      const revisao=isRevisao(a.n);
+      return`<div class="erow${atr?" atrasada":""}" style="${marco?"border-left:3px solid var(--accent2);background:#2a1a10":revisao?"border-left:3px solid var(--blue)":""}">
       <div class="dot" style="background:${SCOR[a.status]};border-radius:0"></div>
       ${atr?`<span style="font-size:11px;color:var(--red)">⚠</span>`:""}
-      <div class="ename"><div class="et" title="${esc(entOf(a.n))}">${esc(entOf(a.n))}</div><div class="es">#${a.n} · ${operOf(a.n)?"oper":esc(valOf(a.n))}</div></div>
+      ${marco?`<span style="font-size:11px;color:var(--accent2)" title="Marco de aprovação">◆</span>`:""}
+      ${revisao?`<span style="font-size:10px;color:var(--blue)" title="Revisão ${a.revisao||CATN[a.n]?.revisao||""}">↻</span>`:""}
+      <div class="ename"><div class="et" title="${esc(entOf(a.n))}">${esc(entOf(a.n))}</div><div class="es">#${a.n} · ${marco?"tipo: "+esc(valOf(a.n)):revisao?"Revisão "+esc(CATN[a.n]?.revisao||""):operOf(a.n)?"oper":esc(valOf(a.n))}</div></div>
       <div class="ef">
         <select class="ii" data-f="resp" data-id="${a.id}">${S.equipe.map(e=>`<option ${e.pessoa===a.resp?"selected":""}>${esc(e.pessoa)}</option>`).join("")}</select>
         <div class="ih"><input class="ii ihn" type="number" data-f="horas" data-id="${a.id}" value="${a.horas}"/><span class="hs">h</span></div>
-        <input class="ii fp-range" type="text" data-id="${a.id}" value="${a.ini&&a.fim?a.ini+' to '+a.fim:a.ini||''}" placeholder="início → fim" readonly style="min-width:150px;cursor:pointer"/>
+        <input class="ii fp-range" type="text" data-id="${a.id}" value="${a.ini&&a.fim?a.ini+' to '+a.fim:a.ini||''}" placeholder="início → fim (previsto)" readonly style="min-width:150px;cursor:pointer"/>
+        ${marco?`<div class="ih"><span class="hs" style="margin-right:3px" title="Data agendada com o cliente">📅</span><input class="ii" type="date" data-f="dataCliente" data-id="${a.id}" value="${a.dataCliente||''}" style="width:130px"/></div>`:""}
         <select class="ii" data-f="status" data-id="${a.id}">${STATUS.map(s=>`<option ${s===a.status?"selected":""}>${s}</option>`).join("")}</select>
       </div>
       <button class="ic" data-delx="${a.id}" title="Excluir">✕</button>
     </div>`;}).join("")+`</div></div>`;
   }).join("");
+}
+
+function vProjCronograma(as){
+  const dts=as.filter(a=>a.ini&&a.fim&&a.status!=="Cancelada");
+  if(!dts.length)return `<div class="muted" style="margin-bottom:14px">Sem atividades com datas ainda — defina o período das atividades para ver o cronograma deste projeto.</div>`;
+  let mn=D(dts[0].ini),mx=D(dts[0].fim);
+  dts.forEach(a=>{if(D(a.ini)<mn)mn=D(a.ini);if(D(a.fim)>mx)mx=D(a.fim);});
+  const m0=mon(mn),n=Math.max(4,wspan(mn,mx)+1);
+  const sem=[...Array(n)].map((_,i)=>aw(m0,i));
+  const tot=Math.max(1,dd(m0,aw(m0,n-1))+1);
+  const px=d=>d/tot*100;
+  const todayOff=px(dd(m0,today()));
+  const groups=BLOCOS.map(b=>({b,it:dts.filter(a=>blocoOf(a.n)===b)})).filter(g=>g.it.length);
+  let h=`<div class="sec-title">Cronograma deste projeto</div>
+  <div style="background:var(--panel);border:1px solid var(--line);overflow:auto;margin-bottom:16px"><div style="min-width:600px;position:relative">
+  <div class="gbar" style="padding-left:140px">${sem.map((s,i)=>`<div style="flex:1;font-size:8px;color:var(--dim);padding:6px 2px;text-align:center;letter-spacing:.5px;${i?"border-left:1px solid var(--line)":""}">${fmt(s)}</div>`).join("")}</div>`;
+  groups.forEach(g=>{
+    let gmn=D(g.it[0].ini),gmx=D(g.it[0].fim);
+    g.it.forEach(a=>{if(D(a.ini)<gmn)gmn=D(a.ini);if(D(a.fim)>gmx)gmx=D(a.fim);});
+    const off=px(dd(m0,gmn)),w=Math.max(px(dd(gmn,gmx)+1),2);
+    const marcos=g.it.filter(a=>isMarco(a.n));
+    h+=`<div style="display:flex;align-items:center;min-height:34px;border-top:1px solid var(--line)">
+      <div style="width:140px;padding:0 8px 0 14px;font-size:9px;font-weight:700;color:${corN(g.it[0].n)};white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${g.b}">${g.b}</div>
+      <div style="flex:1;position:relative;min-height:34px">
+        <div style="position:absolute;left:${off}%;width:${w}%;top:8px;height:18px;background:${corN(g.it[0].n)};opacity:.85;border-radius:2px"></div>
+        ${marcos.map(a=>{const mo=px(dd(m0,D(a.fim)));return `<div title="${esc(valOf(a.n))} · ${fmt(D(a.fim))}" style="position:absolute;left:calc(${mo}% - 5px);top:2px;width:10px;height:10px;background:var(--accent2);border:1px solid var(--txt);transform:rotate(45deg)"></div>`;}).join("")}
+      </div>
+    </div>`;
+  });
+  if(todayOff>=0&&todayOff<=100)h+=`<div style="position:absolute;left:calc(140px + ${todayOff}%);top:0;bottom:0;width:1px;background:var(--accent);opacity:.8;pointer-events:none;z-index:5"></div>`;
+  return h+`</div></div>`;
 }
 
 function vGantt(tl){
@@ -1625,7 +1675,7 @@ function vEquipe(){
 
 function vParametrosTab(){
   if(finGateLocked())return vFinSenha();
-  return `<div class="sec-title">Equipe</div>`+vEquipe()+`<div style="margin-top:28px"></div>`+vFinParametros();
+  return vEquipe()+`<div style="margin-top:18px"></div>`+vFinParametros();
 }
 
 /* ── COMERCIAL ── */
@@ -2080,132 +2130,131 @@ function vFinProjetos(){
 
 function vFinParametros(){
   const fin=S.fin;
-  return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">
-  <div style="background:var(--panel);border-top:2px solid var(--accent);padding:20px">
-    <div class="sec-title">Taxas e honorários (R$/h)</div>
-    ${S.equipe.map(e=>`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px">
-      <span style="font-size:12px">${esc(e.pessoa)}<div style="font-size:9px;color:var(--dim)">${esc(e.funcao)}</div></span>
-      <input class="inp" type="number" style="width:90px;text-align:right" data-fin-taxa="${esc(e.pessoa)}" value="${taxaHora(e.pessoa)}"/>
+  const st=`font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);font-weight:600;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--line)`;
+  const row=`display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:8px`;
+  const iv=(k,v,extra)=>`<input class="inp" type="number" ${extra||""} style="width:58px;padding:4px 6px;font-size:11px;text-align:right" data-fin-margem="${k}" value="${v}"/>`;
+  return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+  <div style="background:var(--panel);border-top:2px solid var(--accent);padding:12px 14px">
+    <div style="${st}">Taxas e honorários (R$/h)</div>
+    ${S.equipe.map(e=>`<div style="${row}">
+      <span style="font-size:11px">${esc(e.pessoa)}<span style="font-size:9px;color:var(--dim)"> · ${esc(e.funcao)}</span></span>
+      <input class="inp" type="number" style="width:58px;padding:4px 6px;font-size:11px;text-align:right;flex-shrink:0" data-fin-taxa="${esc(e.pessoa)}" value="${taxaHora(e.pessoa)}"/>
     </div>`).join("")}
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);gap:10px">
-      <span style="font-size:12px">Rateio custo fixo (R$/h)</span>
-      <input class="inp" type="number" step="0.1" style="width:90px;text-align:right" data-fin-margem="custoFixoHora" value="${fin.custoFixoHora||0}"/>
+    <div style="${row};margin-top:8px;padding-top:8px;border-top:1px solid var(--line)">
+      <span style="font-size:11px">Rateio custo fixo</span>
+      ${iv("custoFixoHora",fin.custoFixoHora||0,'step="0.1"')}
     </div>
   </div>
-  <div style="background:var(--panel);border-top:2px solid var(--accent);padding:20px">
-    <div class="sec-title">Overhead (%)</div>
-    ${[["lucro","Lucro pretendido"],["impostos","Impostos"],["negociacao","Margem p/ negociação"]].map(([k,l])=>`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px">
-      <span style="font-size:12px">${l}</span>
-      <div style="display:flex;align-items:center;gap:4px">
-        <input class="inp" type="number" style="width:70px;text-align:right" data-fin-margem="${k}" value="${fin[k]}"/>
-        <span style="font-size:11px;color:var(--dim)">%</span>
-      </div>
+  <div style="background:var(--panel);border-top:2px solid var(--accent);padding:12px 14px">
+    <div style="${st}">Overhead (%)</div>
+    ${[["lucro","Lucro pretendido"],["impostos","Impostos"],["negociacao","Margem p/ negociação"],["revisao","% horas revisão"]].map(([k,l])=>`<div style="${row}">
+      <span style="font-size:11px">${l}</span>
+      <div style="display:flex;align-items:center;gap:3px;flex-shrink:0">${iv(k,fin[k]||0)}<span style="font-size:10px;color:var(--dim)">%</span></div>
     </div>`).join("")}
-    <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:11px;display:flex;justify-content:space-between">
+    <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:10px;display:flex;justify-content:space-between">
       <span style="color:var(--dim)">Total overhead</span>
       <span style="font-weight:700">${fin.lucro+fin.impostos+fin.negociacao}%</span>
     </div>
   </div>
-  <div style="background:var(--panel);border-top:2px solid var(--accent);padding:20px">
-    <div class="sec-title">Multiplicadores de padrão</div>
-    ${Object.entries(fin.multi).map(([k,v])=>`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px">
-      <span style="font-size:12px">${k}</span>
-      <input class="inp" type="number" step="0.1" style="width:80px;text-align:right" data-fin-multi="${k}" value="${v}"/>
+  <div style="background:var(--panel);border-top:2px solid var(--accent);padding:12px 14px">
+    <div style="${st}">Multiplicadores de padrão</div>
+    ${Object.entries(fin.multi).map(([k,v])=>`<div style="${row}">
+      <span style="font-size:11px">${k}</span>
+      <input class="inp" type="number" step="0.1" style="width:58px;padding:4px 6px;font-size:11px;text-align:right;flex-shrink:0" data-fin-multi="${k}" value="${v}"/>
     </div>`).join("")}
   </div>
-  <div style="background:var(--panel);border-top:2px solid var(--accent);padding:20px">
-    <div class="sec-title">Formas de pagamento (cartão)</div>
-    ${[["taxaCartao1x","Taxa cartão 1x / débito (%)"],["taxaCartao10x","Taxa cartão 10x (%)"]].map(([k,l])=>`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px">
-      <span style="font-size:12px">${l}</span>
-      <input class="inp" type="number" step="0.1" style="width:80px;text-align:right" data-fin-margem="${k}" value="${fin[k]||0}"/>
+  <div style="background:var(--panel);border-top:2px solid var(--accent);padding:12px 14px">
+    <div style="${st}">Formas de pagamento (cartão)</div>
+    ${[["taxaCartao1x","Cartão 1x / débito"],["taxaCartao10x","Cartão 10x"]].map(([k,l])=>`<div style="${row}">
+      <span style="font-size:11px">${l}</span>
+      <div style="display:flex;align-items:center;gap:3px;flex-shrink:0">${iv(k,fin[k]||0,'step="0.1"')}<span style="font-size:10px;color:var(--dim)">%</span></div>
     </div>`).join("")}
-    <div style="font-size:9px;color:var(--dim);margin-top:8px;line-height:1.5">A participação de cada pessoa nos orçamentos agora é calculada automaticamente pelo responsável definido em cada entregável, dentro da própria proposta.</div>
+    <div style="font-size:9px;color:var(--dim);margin-top:6px;line-height:1.4">Participação da equipe agora é automática, pelo responsável definido em cada entregável do orçamento.</div>
   </div>
-  <div style="background:var(--panel);border-top:2px solid var(--accent);padding:20px;grid-column:1/-1">
-    <div class="sec-title">Fatores hora/m² por entregável</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:6px 20px">
-    ${ORC_ENT.map(e=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
-      <span style="font-size:11px">${e.nome}</span>
-      <input class="inp" type="number" step="0.01" style="width:70px;text-align:right" data-fin-fator="${e.k}" value="${fin.fatores?.[e.k]!=null?fin.fatores[e.k]:e.fator}"/>
+  <div style="background:var(--panel);border-top:2px solid var(--accent);padding:12px 14px;grid-column:1/-1">
+    <div style="${st}">Fatores hora/m² por entregável</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:3px 14px">
+    ${ORC_ENT.map(e=>`<div style="${row};margin-bottom:3px">
+      <span style="font-size:10px">${e.nome}</span>
+      <input class="inp" type="number" step="0.01" style="width:56px;padding:4px 6px;font-size:11px;text-align:right;flex-shrink:0" data-fin-fator="${e.k}" value="${fin.fatores?.[e.k]!=null?fin.fatores[e.k]:e.fator}"/>
     </div>`).join("")}
     </div>
   </div>
-  <div style="background:var(--panel);border-top:2px solid var(--accent);padding:20px;grid-column:1/-1">
-    <div class="sec-title">Templates de terceiros por tipo de projeto</div>
-    <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
-      ${Object.keys(fin.tercTemplates||{}).map(t=>`<button data-tpl-sel="${t}" style="font-size:10px;padding:5px 12px;border:1px solid ${S.tplSel===t?'var(--accent)':'var(--line)'};background:${S.tplSel===t?'rgba(166,83,58,.12)':'var(--panel2)'};color:${S.tplSel===t?'var(--accent)':'var(--dim)'};cursor:pointer;font-family:inherit">${t}</button>`).join("")}
+  <div style="background:var(--panel);border-top:2px solid var(--accent);padding:12px 14px;grid-column:1/-1">
+    <div style="${st}">Templates de terceiros por tipo de projeto</div>
+    <div style="display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap">
+      ${Object.keys(fin.tercTemplates||{}).map(t=>`<button data-tpl-sel="${t}" style="font-size:10px;padding:4px 10px;border:1px solid ${S.tplSel===t?'var(--accent)':'var(--line)'};background:${S.tplSel===t?'rgba(166,83,58,.12)':'var(--panel2)'};color:${S.tplSel===t?'var(--accent)':'var(--dim)'};cursor:pointer;font-family:inherit">${t}</button>`).join("")}
     </div>
-    <div style="display:flex;align-items:center;gap:6px;padding-bottom:5px;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid var(--line)">
-      <div style="flex:1.6">Item</div><div style="width:60px;text-align:center">Qtd</div><div style="width:80px;text-align:right">R$ unit.</div><div style="width:34px;text-align:center">P1</div><div style="width:34px;text-align:center">P2</div><div style="width:34px;text-align:center">P3</div><div style="width:16px"></div>
+    <div style="display:flex;align-items:center;gap:6px;padding-bottom:4px;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid var(--line)">
+      <div style="flex:1.6">Item</div><div style="width:50px;text-align:center">Qtd</div><div style="width:68px;text-align:right">R$ unit.</div><div style="width:30px;text-align:center">P1</div><div style="width:30px;text-align:center">P2</div><div style="width:30px;text-align:center">P3</div><div style="width:14px"></div>
     </div>
     ${((fin.tercTemplates||{})[S.tplSel]||[]).map((t,i)=>{
-      const tg=(on,attr)=>`<button ${attr} style="width:34px;height:20px;border:1px solid ${on?'#155e4a':'var(--line)'};background:${on?'#0a2e25':'var(--panel2)'};color:${on?'var(--green)':'var(--dim)'};font-size:8px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0">${on?'SIM':'NÃO'}</button>`;
-      return `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--line)">
-      <input class="inp" data-tpl-f="nome" data-i="${i}" value="${esc(t.nome)}" style="flex:1.6;padding:5px 8px;font-size:11px"/>
-      <input class="inp" data-tpl-f="qtd" data-i="${i}" type="number" value="${t.qtd||""}" style="width:60px;padding:5px;font-size:11px;text-align:center"/>
-      <input class="inp" data-tpl-f="unit" data-i="${i}" type="number" step="0.01" value="${t.unit||""}" style="width:80px;padding:5px;font-size:11px;text-align:right"/>
+      const tg=(on,attr)=>`<button ${attr} style="width:30px;height:18px;border:1px solid ${on?'#155e4a':'var(--line)'};background:${on?'#0a2e25':'var(--panel2)'};color:${on?'var(--green)':'var(--dim)'};font-size:8px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0">${on?'SIM':'NÃO'}</button>`;
+      return `<div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid var(--line)">
+      <input class="inp" data-tpl-f="nome" data-i="${i}" value="${esc(t.nome)}" style="flex:1.6;padding:4px 6px;font-size:11px"/>
+      <input class="inp" data-tpl-f="qtd" data-i="${i}" type="number" value="${t.qtd||""}" style="width:50px;padding:4px;font-size:11px;text-align:center"/>
+      <input class="inp" data-tpl-f="unit" data-i="${i}" type="number" step="0.01" value="${t.unit||""}" style="width:68px;padding:4px;font-size:11px;text-align:right"/>
       ${tg(t.p1,`data-tpl-tg="${i}|p1"`)}${tg(t.p2,`data-tpl-tg="${i}|p2"`)}${tg(t.p3,`data-tpl-tg="${i}|p3"`)}
       <button data-tpl-del="${i}" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;padding:0 2px">✕</button>
     </div>`;}).join("")}
-    <button class="btn" data-tpl-add="1" style="width:100%;border-style:dashed;color:var(--dim);margin-top:8px">+ adicionar item ao template</button>
+    <button class="btn" data-tpl-add="1" style="width:100%;border-style:dashed;color:var(--dim);margin-top:6px;padding:6px;font-size:10px">+ adicionar item ao template</button>
   </div>
-  <div style="background:var(--panel);border-top:2px solid var(--green);padding:20px;grid-column:1/-1">
-    <div class="sec-title">Sincronização em nuvem — Google Drive</div>
-    <div style="font-size:10px;color:var(--dim);margin-bottom:12px;line-height:1.7">
-      Os dados do sistema são salvos num arquivo <b style="color:var(--txt)">${SYNC_FILE}</b> no seu Google Drive e sincronizados automaticamente entre dispositivos.
-      Configuração única (no Google Cloud Console): criar projeto → ativar a <b style="color:var(--txt)">Google Drive API</b> → tela de consentimento (adicione seu e-mail como test user) → criar credencial <b style="color:var(--txt)">OAuth Client ID (Web)</b> com as origens do site → colar o Client ID abaixo.
+  <div style="background:var(--panel);border-top:2px solid var(--green);padding:12px 14px;grid-column:1/-1">
+    <div style="${st}">Sincronização em nuvem — Google Drive</div>
+    <div style="font-size:10px;color:var(--dim);margin-bottom:8px;line-height:1.5">
+      Dados salvos em <b style="color:var(--txt)">${SYNC_FILE}</b> no seu Drive, sincronizados entre dispositivos. Configuração (Google Cloud Console): projeto → ativar <b style="color:var(--txt)">Drive API</b> → consentimento (test user) → <b style="color:var(--txt)">OAuth Client ID (Web)</b> com as origens do site → colar abaixo.
     </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
-      <div style="flex:2;min-width:260px">
-        <label class="l" style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);font-weight:600;display:block;margin-bottom:6px">Client ID (….apps.googleusercontent.com)</label>
-        <input class="inp" id="sync_client" value="${esc(SYNC.clientId||"")}" placeholder="cole aqui o Client ID"/>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+      <div style="flex:2;min-width:220px">
+        <label class="l" style="font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);font-weight:600;display:block;margin-bottom:4px">Client ID (….apps.googleusercontent.com)</label>
+        <input class="inp" id="sync_client" style="padding:6px 8px;font-size:11px" value="${esc(SYNC.clientId||"")}" placeholder="cole aqui o Client ID"/>
       </div>
-      <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;padding-bottom:10px">
+      <label style="display:flex;align-items:center;gap:5px;font-size:10px;cursor:pointer;padding-bottom:7px">
         <input type="checkbox" id="sync_auto" ${SYNC.auto?"checked":""}/> sincronizar automático
       </label>
     </div>
-    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-      <button class="btnP" id="btn_sync_connect">${syncConectado()?"Reconectar":"Conectar ao Google"}</button>
-      <button class="btn" id="btn_sync_push" ${SYNC.clientId?"":"disabled"}>Enviar agora</button>
-      <button class="btn" id="btn_sync_pull" ${SYNC.clientId?"":"disabled"}>Baixar do Drive</button>
-      ${SYNC.clientId?`<button class="btn" id="btn_sync_off" style="color:var(--red);border-color:var(--red)">Desativar</button>`:""}
+    <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+      <button class="btnP" id="btn_sync_connect" style="padding:6px 12px;font-size:10px">${syncConectado()?"Reconectar":"Conectar ao Google"}</button>
+      <button class="btn" id="btn_sync_push" style="padding:6px 12px;font-size:10px" ${SYNC.clientId?"":"disabled"}>Enviar agora</button>
+      <button class="btn" id="btn_sync_pull" style="padding:6px 12px;font-size:10px" ${SYNC.clientId?"":"disabled"}>Baixar do Drive</button>
+      ${SYNC.clientId?`<button class="btn" id="btn_sync_off" style="color:var(--red);border-color:var(--red);padding:6px 12px;font-size:10px">Desativar</button>`:""}
     </div>
-    <div id="sync_status" style="font-size:11px;margin-top:10px;min-height:16px;color:${syncConectado()?"var(--green)":"var(--dim)"}">${SYNC.last?"última sincronização: "+new Date(SYNC.last).toLocaleString("pt-BR"):(SYNC.clientId?"aguardando conexão":"não configurado")}</div>
+    <div id="sync_status" style="font-size:10px;margin-top:8px;min-height:14px;color:${syncConectado()?"var(--green)":"var(--dim)"}">${SYNC.last?"última sincronização: "+new Date(SYNC.last).toLocaleString("pt-BR"):(SYNC.clientId?"aguardando conexão":"não configurado")}</div>
   </div>
-  <div style="background:var(--panel);border-top:2px solid var(--accent);padding:20px;grid-column:1/-1">
-    <div class="sec-title">Modelo de contrato</div>
-    <div style="font-size:10px;color:var(--dim);margin-bottom:10px;line-height:1.6">Edite o texto do seu contrato. As variáveis entre chaves são substituídas automaticamente ao gerar:
+  <div style="background:var(--panel);border-top:2px solid var(--accent);padding:12px 14px;grid-column:1/-1">
+    <div style="${st}">Modelo de contrato</div>
+    <div style="font-size:10px;color:var(--dim);margin-bottom:8px;line-height:1.5">Ao clicar "Gerar contrato" (em Entradas), o sistema cria um <b style="color:var(--txt)">Google Doc no seu Drive</b> já preenchido — requer sincronização conectada. Variáveis:
       <span style="font-family:monospace;font-size:9px;color:var(--textsub)">{{cliente}} {{cpf_cnpj}} {{endereco}} {{telefone}} {{email}} {{projeto}} {{endereco_obra}} {{matricula}} {{cartorio}} {{proprietario}} {{anuente}} {{cidade_uf}} {{area_m2}} {{tipo}} {{pacote}} {{escopo_lista}} {{proposta_num}} {{valor_total}} {{valor_extenso}} {{forma_pagamento}} {{entrada}} {{num_parcelas}} {{valor_parcela}} {{dia_vencimento}} {{data_inicio}} {{data_assinatura}}</span>
     </div>
-    <textarea id="ctr_tpl" style="width:100%;min-height:260px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);font-family:monospace;font-size:11px;padding:12px;line-height:1.6;resize:vertical">${esc(fin.contratoTpl||CONTRATO_TPL_DEFAULT)}</textarea>
-    <div style="display:flex;gap:8px;margin-top:10px">
-      <button class="btnP" id="btn_salva_ctrtpl">Salvar modelo</button>
-      <button class="btn" id="btn_reset_ctrtpl">Restaurar padrão</button>
-      <span id="msg_ctrtpl" style="font-size:11px;align-self:center"></span>
+    <textarea id="ctr_tpl" style="width:100%;min-height:180px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);font-family:monospace;font-size:11px;padding:10px;line-height:1.5;resize:vertical">${esc(fin.contratoTpl||CONTRATO_TPL_DEFAULT)}</textarea>
+    <div style="display:flex;gap:6px;margin-top:8px">
+      <button class="btnP" id="btn_salva_ctrtpl" style="padding:6px 12px;font-size:10px">Salvar modelo</button>
+      <button class="btn" id="btn_reset_ctrtpl" style="padding:6px 12px;font-size:10px">Restaurar padrão</button>
+      <span id="msg_ctrtpl" style="font-size:10px;align-self:center"></span>
     </div>
   </div>
-  <div style="background:var(--panel);border-top:2px solid var(--accent);padding:20px">
-    <div class="sec-title">Senha do Diretor</div>
-    <div style="font-size:10px;color:var(--dim);margin-bottom:12px;line-height:1.5">Pedida no login como Diretor. Ao entrar, o Financeiro já fica liberado.</div>
-    <div class="fld"><label class="l">Senha atual</label>
-      <input class="inp" type="password" id="fin_senha_atual" placeholder="${fin.senha?"••••••••":"Sem senha definida"}"/>
+  <div style="background:var(--panel);border-top:2px solid var(--accent);padding:12px 14px">
+    <div style="${st}">Senha do Diretor</div>
+    <div style="font-size:9px;color:var(--dim);margin-bottom:8px;line-height:1.4">Pedida no login como Diretor; libera o Financeiro.</div>
+    <div class="fld" style="margin-bottom:8px"><label class="l" style="font-size:8px;margin-bottom:3px">Senha atual</label>
+      <input class="inp" type="password" id="fin_senha_atual" style="padding:6px 8px;font-size:11px" placeholder="${fin.senha?"••••••••":"Sem senha definida"}"/>
     </div>
-    <div class="fld"><label class="l">Nova senha</label>
-      <input class="inp" type="password" id="fin_senha_nova" placeholder="Deixe vazio para remover"/>
+    <div class="fld" style="margin-bottom:8px"><label class="l" style="font-size:8px;margin-bottom:3px">Nova senha</label>
+      <input class="inp" type="password" id="fin_senha_nova" style="padding:6px 8px;font-size:11px" placeholder="Deixe vazio para remover"/>
     </div>
-    <button class="btnP" id="btn_salva_senha" style="width:100%">Salvar senha</button>
-    <div id="msg_senha" style="font-size:11px;margin-top:8px;min-height:16px"></div>
-    ${fin.senha?`<button class="btn" id="btn_remove_senha" style="width:100%;margin-top:8px;color:var(--red);border-color:var(--red)">Remover proteção</button>`:""}
+    <button class="btnP" id="btn_salva_senha" style="width:100%;padding:6px;font-size:10px">Salvar senha</button>
+    <div id="msg_senha" style="font-size:10px;margin-top:6px;min-height:14px"></div>
+    ${fin.senha?`<button class="btn" id="btn_remove_senha" style="width:100%;margin-top:6px;color:var(--red);border-color:var(--red);padding:6px;font-size:10px">Remover proteção</button>`:""}
   </div>
-  <div style="background:var(--panel);border-top:2px solid var(--blue);padding:20px">
-    <div class="sec-title">Senha do Financeiro (compartilhável)</div>
-    <div style="font-size:10px;color:var(--dim);margin-bottom:12px;line-height:1.5">Compartilhe com um colaborador para liberar o Financeiro (Dashboard, Propostas e Honorários — sem Parâmetros). Troque a senha para revogar o acesso. Sem senha definida, a aba nem aparece para a equipe.</div>
-    <div class="fld"><label class="l">Senha de acesso</label>
-      <input class="inp" type="password" id="fin_senhafin" placeholder="${fin.senhaFin?"••••••••":"Sem senha — acesso desativado"}"/>
+  <div style="background:var(--panel);border-top:2px solid var(--blue);padding:12px 14px">
+    <div style="${st}">Senha do Financeiro (compartilhável)</div>
+    <div style="font-size:9px;color:var(--dim);margin-bottom:8px;line-height:1.4">Libera Financeiro para a equipe (sem Parâmetros). Sem senha, a aba nem aparece.</div>
+    <div class="fld" style="margin-bottom:8px"><label class="l" style="font-size:8px;margin-bottom:3px">Senha de acesso</label>
+      <input class="inp" type="password" id="fin_senhafin" style="padding:6px 8px;font-size:11px" placeholder="${fin.senhaFin?"••••••••":"Sem senha — acesso desativado"}"/>
     </div>
-    <button class="btnP" id="btn_salva_senhafin" style="width:100%">Salvar senha</button>
-    <div id="msg_senhafin" style="font-size:11px;margin-top:8px;min-height:16px"></div>
-    ${fin.senhaFin?`<button class="btn" id="btn_remove_senhafin" style="width:100%;margin-top:8px;color:var(--red);border-color:var(--red)">Desativar acesso da equipe</button>`:""}
+    <button class="btnP" id="btn_salva_senhafin" style="width:100%;padding:6px;font-size:10px">Salvar senha</button>
+    <div id="msg_senhafin" style="font-size:10px;margin-top:6px;min-height:14px"></div>
+    ${fin.senhaFin?`<button class="btn" id="btn_remove_senhafin" style="width:100%;margin-top:6px;color:var(--red);border-color:var(--red);padding:6px;font-size:10px">Desativar acesso da equipe</button>`:""}
   </div>
   </div>`;
 }
@@ -2294,7 +2343,7 @@ function clienteModal(d){
 }
 
 // ===== CALCULADORA DE ORÇAMENTO =====
-const ORC_PARAM_KEYS=["lucro","impostos","negociacao","taxaCartao1x","taxaCartao10x"];
+const ORC_PARAM_KEYS=["lucro","impostos","negociacao","taxaCartao1x","taxaCartao10x","revisao"];
 function orcParamsDefault(){const p={};ORC_PARAM_KEYS.forEach(k=>p[k]=S.fin[k]||0);p.multi={...S.fin.multi};return p;}
 function orcRespDefault(){const r={};const p0=S.equipe[0]?.pessoa||"";ORC_ENT.forEach(e=>r[e.k]=p0);return r;}
 function startOrc(){
@@ -2321,18 +2370,21 @@ function orcCalc(o){
   const resp=k=>o.resp?.[k]||S.equipe[0]?.pessoa||"";
   const imp=(f.impostos||0)/100,folga=(f.negociacao||0)/100,lucro=(f.lucro||0)/100;
   const tx10=(f.taxaCartao10x||15)/100,tx1=(f.taxaCartao1x||2)/100,cf=+S.fin.custoFixoHora||0;
+  const pctRevPart=(f.revisao||0)/100;
   // participação automática: hrs totais atribuídas a cada pessoa, em todos os entregáveis (independe do pacote)
   const partHoras={};let partTotal=0;
-  ORC_ENT.forEach(e=>{const h=horasEnt(e.k);const p=resp(e.k);partHoras[p]=(partHoras[p]||0)+h;partTotal+=h;});
+  ORC_ENT.forEach(e=>{const h=horasEnt(e.k)*(1+pctRevPart);const p=resp(e.k);partHoras[p]=(partHoras[p]||0)+h;partTotal+=h;});
   const participacao=Object.entries(partHoras).map(([pessoa,h])=>({pessoa,horas:h,pct:partTotal?Math.round(h/partTotal*1000)/10:0}))
     .sort((a,b)=>b.horas-a.horas);
+  const pctRev=(f.revisao||0)/100;
   const pac=p=>{
-    let horas=0,mo=0;
+    let horasBase=0,mo=0;
     ORC_ENT.forEach(e=>{
       if(!o.esc[e.k]?.[p])return;
-      const h=horasEnt(e.k);horas+=h;
+      const h=horasEnt(e.k)*(1+pctRev);horasBase+=h;
       mo+=h*(taxaHora(resp(e.k))+cf);
     });
+    const horas=horasBase;
     const terc=o.terc.filter(t=>t[p]&&(t.nome||'').trim()).reduce((s,t)=>s+(+t.qtd||0)*(+t.unit||0),0);
     const custo=mo+terc;
     const base=custo*(1+lucro);
@@ -2391,7 +2443,7 @@ function orcModal(){
   if(o.step===1){
     const dis=o.travado?"disabled":"";
     const tg=(on,attr)=>`<button ${attr} ${dis} style="width:34px;height:20px;border:1px solid ${on?'#155e4a':'var(--line)'};background:${on?'#0a2e25':'var(--panel2)'};color:${on?'var(--green)':'var(--dim)'};font-size:8px;font-weight:700;cursor:${o.travado?'default':'pointer'};font-family:inherit;flex-shrink:0;opacity:${o.travado?.5:1}">${on?'SIM':'NÃO'}</button>`;
-    const pl={lucro:"Lucro %",impostos:"Impostos %",negociacao:"Negociação %",taxaCartao1x:"Cartão 1x %",taxaCartao10x:"Cartão 10x %"};
+    const pl={lucro:"Lucro %",impostos:"Impostos %",negociacao:"Negociação %",taxaCartao1x:"Cartão 1x %",taxaCartao10x:"Cartão 10x %",revisao:"% horas revisão"};
     body=`<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);font-weight:700;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
       <span>Parâmetros deste orçamento</span>
       <span style="font-size:8px;color:var(--dim);text-transform:none;letter-spacing:0">overhead + multiplicadores + cartão · valores base em Parâmetros</span>
@@ -2514,14 +2566,15 @@ const ORC2BLOCO={e01:["01"],e02:["02"],e03:["03"],e04:["04","05"],e05:["06"],e06
 function ativsFromOrc(p,projNome){
   const o=p.orc;if(!o)return null;
   const pk=(p.pacoteApres||"P2").toLowerCase();
-  const mult=x=>S.fin.multi[x]||1;
+  const mult=x=>(o.params?.multi?.[x]??S.fin.multi[x])||1;
+  const pctRev=((o.params?.revisao??S.fin.revisao)||0)/100;
   const m2p=(o.ambientes||[]).reduce((s,a)=>s+(+a.m2||0)*mult(a.padrao)*(+a.qtd||1),0);
   if(!m2p)return null;
   const out=[];
   ORC_ENT.forEach(e=>{
     if(!o.esc?.[e.k]?.[pk])return;
     const fat=S.fin.fatores?.[e.k]!=null?+S.fin.fatores[e.k]:e.fator;
-    const horasTot=fat*m2p;
+    const horasTot=fat*m2p*(1+pctRev);
     const cats=CAT.filter(c=>(ORC2BLOCO[e.k]||[]).includes(c.et));
     const somaDef=cats.reduce((s,c)=>s+c.horas,0)||1;
     const respE=o.resp?.[e.k]||S.equipe[0]?.pessoa||"";
@@ -2625,17 +2678,32 @@ function contratoVars(ct){
   };
 }
 
+async function gCreateDoc(tok,name,htmlBody){
+  const boundary="oadcontratob";
+  const meta={name,mimeType:"application/vnd.google-apps.document"};
+  const body="--"+boundary+"\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n"+JSON.stringify(meta)
+    +"\r\n--"+boundary+"\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n"+htmlBody
+    +"\r\n--"+boundary+"--";
+  const r=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink",{
+    method:"POST",headers:{Authorization:"Bearer "+tok,"Content-Type":"multipart/related; boundary="+boundary},body});
+  if(!r.ok)throw new Error("HTTP "+r.status);
+  return r.json();
+}
 function genContrato(ct){
+  if(!SYNC.clientId){alert("Configure a sincronização com o Google Drive em Parâmetros antes de gerar o contrato — é lá que o documento é criado.");return;}
   const tpl=S.fin.contratoTpl||CONTRATO_TPL_DEFAULT;
   const vars=contratoVars(ct);
   let txt=tpl;
   Object.entries(vars).forEach(([k,v])=>{txt=txt.split("{{"+k+"}}").join(String(v));});
-  const docHtml=`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"/><title>Contrato — ${esc(ct.nome)}</title>
-  <style>body{font-family:Georgia,'Times New Roman',serif;font-size:12pt;line-height:1.8;color:#1C1917;max-width:170mm;margin:20mm auto;white-space:pre-wrap;}
-  @media print{body{margin:0;}}</style></head><body>${esc(txt)}</body></html>`;
-  const w=window.open("","_blank");
-  w.document.write(docHtml);w.document.close();
-  setTimeout(()=>w.print(),600);
+  const htmlBody="<div style=\"font-family:Georgia,'Times New Roman',serif;font-size:12pt;line-height:1.8;white-space:pre-wrap\">"+esc(txt)+"</div>";
+  gToken(async tok=>{
+    if(!tok){alert("Conecte o Google Drive (Parâmetros → Sincronização) para gerar o contrato.");return;}
+    try{
+      const res=await gCreateDoc(tok,"Contrato - "+ct.nome,htmlBody);
+      if(res.webViewLink)window.open(res.webViewLink,"_blank");
+      else alert("Contrato criado no Google Drive (pasta raiz).");
+    }catch(e){alert("Erro ao gerar o contrato no Drive: "+e.message);}
+  },false);
 }
 
 function contratoModal(){
@@ -2996,7 +3064,7 @@ function projModal(d){
 function ativModal(d){
   return `<div class="ov" data-close="1"><div class="modal" data-stop="1">
   <div class="modal-title">${d.id?"Editar atividade":"Nova atividade"}</div>
-  <div class="fld"><label class="l">Atividade</label><select class="inp" id="m_n">${BLOCOS.map(b=>`<optgroup label="${b}">${CAT.filter(c=>c.bloco===b).map(c=>`<option value="${c.n}" ${c.n===d.n?"selected":""}>#${c.n} ${esc(c.ent)}${c.oper?" (oper)":""}</option>`).join("")}</optgroup>`).join("")}</select></div>
+  <div class="fld"><label class="l">Atividade</label><select class="inp" id="m_n">${BLOCOS.map(b=>`<optgroup label="${b}">${[...CAT.filter(c=>c.bloco===b),...CAT_REV.filter(c=>c.bloco===b)].map(c=>`<option value="${c.n}" ${c.n===d.n?"selected":""}>#${c.n} ${c.revisao?"↻ ":""}${esc(c.ent)}${c.oper?" (oper)":""}</option>`).join("")}</optgroup>`).join("")}</select></div>
   <div id="m_info" style="font-size:10px;color:var(--dim);letter-spacing:.5px;margin:-6px 0 12px;padding:8px 10px;background:var(--panel2)">${esc(atOf(d.n))} · ${prodOf(d.n)} · ${operOf(d.n)?"Operacional":esc(valOf(d.n))}</div>
   <div style="display:flex;gap:10px">
     <div class="fld" style="flex:1"><label class="l">Responsável</label><select class="inp" id="m_resp">${S.equipe.map(e=>`<option ${e.pessoa===d.resp?"selected":""}>${esc(e.pessoa)}</option>`).join("")}</select></div>
