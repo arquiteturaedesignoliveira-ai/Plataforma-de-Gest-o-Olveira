@@ -931,11 +931,12 @@ function view(){
   else if(S.tab==="obra")body=vObra();
   else if(isDir&&S.tab==="projetos")body=vProjetos(tl);
   else if(isDir&&S.tab==="clientes")body=vClientes();
-  else if(isDir&&S.tab==="equipe")body=vEquipe();
+  else if(S.tab==="comercial"&&(isDir||S.fin.senhaFin))body=vComercial();
   else if(S.tab==="financeiro"&&(isDir||S.fin.senhaFin))body=vFinanceiro();
+  else if(isDir&&S.tab==="parametros")body=vParametrosTab();
   else body=vInicio();
-  const dirTabs=[["inicio","Início"],["projetos","Projetos"],["obra","Obra"],["clientes","Clientes"],["financeiro","Financeiro"],["equipe","Equipe"]];
-  const eqTabs=[["inicio","Início"],["minhas","Atividades"],["obra","Obra"],...(S.fin.senhaFin?[["financeiro","Financeiro"]]:[])];
+  const dirTabs=[["inicio","Início"],["comercial","Comercial"],["projetos","Projetos"],["obra","Obra"],["clientes","Clientes"],["financeiro","Financeiro"],["parametros","Parâmetros"]];
+  const eqTabs=[["inicio","Início"],["minhas","Atividades"],["obra","Obra"],...(S.fin.senhaFin?[["comercial","Comercial"],["financeiro","Financeiro"]]:[])];
   const tabs=isDir?dirTabs:eqTabs;
   const activeTab=S.proj?"projetos":S.tab;
   return `<div class="hd">
@@ -1622,20 +1623,33 @@ function vEquipe(){
   </button>`).join("");
 }
 
+function vParametrosTab(){
+  if(finGateLocked())return vFinSenha();
+  return `<div class="sec-title">Equipe</div>`+vEquipe()+`<div style="margin-top:28px"></div>`+vFinParametros();
+}
+
+/* ── COMERCIAL ── */
+function finGateLocked(){
+  const isDir=S.usuario?.role==="diretor";
+  if(isDir)return !!(S.fin.senha&&!S.finUnlocked);
+  return !S.fin.senhaFin||!S.finUnlocked;
+}
+function vComercial(){
+  if(finGateLocked())return vFinSenha();
+  const tabs=[["dashboard","Dashboard"],["propostas","Controle de propostas"]];
+  const subTabs=`<div class="fin-tabs">${tabs.map(([k,l])=>`<button class="fin-tab ${(S.comTab||"dashboard")===k?"on":""}" data-com-tab="${k}">${l}</button>`).join("")}</div>`;
+  if((S.comTab||"dashboard")==="propostas") return subTabs+vFinComercial();
+  return subTabs+vFinDashboard();
+}
+
 /* ── FINANCEIRO ── */
 function vFinanceiro(){
-  const isDir=S.usuario?.role==="diretor";
-  if(isDir){if(S.fin.senha&&!S.finUnlocked)return vFinSenha();}
-  else{if(!S.fin.senhaFin)return vInicio();if(!S.finUnlocked)return vFinSenha();}
-  const tabs=[["dashboard","Dashboard"],["comercial","Comercial"],["entradas","Entradas"],["pipeline","Propostas"],["projetos","Honorários"],...(isDir?[["parametros","Parâmetros"]]:[])];
-  if(!isDir&&S.finTab==="parametros")S.finTab="dashboard";
+  if(finGateLocked())return vFinSenha();
+  const tabs=[["entradas","Entradas"],["projetos","Honorários"]];
+  if(!["entradas","projetos"].includes(S.finTab))S.finTab="entradas";
   const subTabs=`<div class="fin-tabs">${tabs.map(([k,l])=>`<button class="fin-tab ${S.finTab===k?"on":""}" data-fin-tab="${k}">${l}</button>`).join("")}</div>`;
-  if(S.finTab==="comercial") return subTabs+vFinComercial();
   if(S.finTab==="entradas") return subTabs+vFinEntradas();
-  if(S.finTab==="pipeline") return subTabs+vFinPipeline();
-  if(S.finTab==="projetos") return subTabs+vFinProjetos();
-  if(S.finTab==="parametros") return subTabs+vFinParametros();
-  return subTabs+vFinDashboard();
+  return subTabs+vFinProjetos();
 }
 
 function vFinEntradas(){
@@ -1914,7 +1928,7 @@ function vFinComercial(){
   const ticket=aprov?Math.round(fat/aprov):0;
 
   let h=`<div class="row" style="margin-bottom:16px;flex-wrap:wrap;gap:8px">
-    <div class="sec-title" style="margin:0;border:none;padding:0">Comercial</div>
+    <div class="sec-title" style="margin:0;border:none;padding:0">Controle de propostas</div>
     <div style="display:flex;gap:8px">
       <button class="btn" data-act="newprop">+ manual</button>
       <button class="btnP" data-act="neworc">+ Novo orçamento</button>
@@ -1939,20 +1953,34 @@ function vFinComercial(){
     if(!lista.length){h+=`<div class="muted" style="margin-bottom:16px">Nenhuma proposta neste status.</div>`;return;}
     lista.forEach(p=>{
       const valorRef=+(p.valorFechado||p["valor"+(p.pacoteApres||"P2")]||p.valorP2||p.valorP1||0);
-      h+=`<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--line)">
-        <span style="font-size:10px;color:var(--dim);flex-shrink:0">#${p.num||"—"}</span>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.cliente||"—")}</div>
-          <div style="font-size:9px;color:var(--dim)">${p.data?new Date(p.data+"T12:00:00").toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"2-digit"}):"—"} · ${esc(p.tipo||"—")}${p.meio?" · "+esc(p.meio):""}</div>
-        </div>
-        <div style="font-size:12px;font-weight:700;white-space:nowrap;color:${g.aprovado?"var(--green)":"var(--txt)"}">${valorRef?fmtBRL(valorRef):"—"}</div>
-        <div style="display:flex;gap:6px;flex-shrink:0">
+      const cli=S.clientes.find(c=>c.id===p.clienteId||c.nome===p.cliente);
+      const aberto=S.propHistOpen===p.id;
+      const hist=(cli?.hist||[]).slice().reverse().slice(0,5);
+      h+=`<div style="background:var(--panel);border-bottom:1px solid var(--line)">
+        <button data-prop-hist="${p.id}" style="display:flex;align-items:center;gap:10px;padding:10px 14px;width:100%;background:none;border:none;cursor:pointer;font-family:inherit;color:var(--txt);text-align:left">
+          <span style="font-size:10px;color:var(--dim);flex-shrink:0">#${p.num||"—"}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.cliente||"—")}</div>
+            <div style="font-size:9px;color:var(--dim)">${p.data?new Date(p.data+"T12:00:00").toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"2-digit"}):"—"} · ${esc(p.tipo||"—")}${p.meio?" · "+esc(p.meio):""}</div>
+          </div>
+          <div style="font-size:12px;font-weight:700;white-space:nowrap;color:${g.aprovado?"var(--green)":"var(--txt)"}">${valorRef?fmtBRL(valorRef):"—"}</div>
+        </button>
+        <div style="display:flex;gap:6px;flex-shrink:0;padding:0 14px 10px;flex-wrap:wrap">
+          ${cli?`<button class="btn" style="font-size:9px;padding:4px 8px" data-vercliente="${cli.id}">→ Cliente</button>`:""}
           ${g.aprovado
-            ?(p.projNome?`<span style="font-size:9px;color:var(--green);white-space:nowrap">→ ${esc(p.projNome)}</span>`:`<button class="btnP" style="font-size:9px;padding:4px 8px" data-mkproj="${p.id}" title="Criar projeto com os dados deste orçamento">→ Projeto</button>`)
+            ?(p.projNome?`<span style="font-size:9px;color:var(--green);white-space:nowrap;align-self:center">→ ${esc(p.projNome)}</span>`:`<button class="btnP" style="font-size:9px;padding:4px 8px" data-mkproj="${p.id}" title="Criar projeto com os dados deste orçamento">→ Projeto</button>`)
             :g.editavel?`<button class="btn" style="font-size:9px;padding:4px 8px" data-editorc="${p.id}">Orçamento</button><button class="btn" style="font-size:9px;padding:4px 8px" data-editprop="${p.id}">Status</button>`
-            :`<span class="pill" style="background:${PROP_COR[p.status]||"#999"};color:#fff;font-size:8px">${p.status}</span>`
+            :`<span class="pill" style="background:${PROP_COR[p.status]||"#999"};color:#fff;font-size:8px;align-self:center">${p.status}</span>`
           }
         </div>
+        ${aberto?`<div style="padding:0 14px 12px;border-top:1px solid var(--line);margin-top:0">
+          <div style="font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);font-weight:700;margin:10px 0 6px">Histórico de acompanhamento</div>
+          ${hist.length?hist.map(ct=>`<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--line);font-size:10px">
+            <span style="color:var(--dim);flex-shrink:0;width:60px">${ct.data?new Date(ct.data+"T12:00:00").toLocaleDateString("pt-BR",{day:"2-digit",month:"short"}):""}</span>
+            <span style="flex:1">${esc(ct.txt)}</span>
+            <span style="color:var(--blue);flex-shrink:0">${esc(ct.tipo||"")}</span>
+          </div>`).join(""):`<div style="font-size:10px;color:var(--dim)">Sem registros de histórico ainda.</div>`}
+        </div>`:""}
       </div>`;
     });
   });
@@ -2054,11 +2082,15 @@ function vFinParametros(){
   const fin=S.fin;
   return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">
   <div style="background:var(--panel);border-top:2px solid var(--accent);padding:20px">
-    <div class="sec-title">Taxas horárias (R$/h)</div>
+    <div class="sec-title">Taxas e honorários (R$/h)</div>
     ${S.equipe.map(e=>`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px">
       <span style="font-size:12px">${esc(e.pessoa)}<div style="font-size:9px;color:var(--dim)">${esc(e.funcao)}</div></span>
       <input class="inp" type="number" style="width:90px;text-align:right" data-fin-taxa="${esc(e.pessoa)}" value="${taxaHora(e.pessoa)}"/>
     </div>`).join("")}
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);gap:10px">
+      <span style="font-size:12px">Rateio custo fixo (R$/h)</span>
+      <input class="inp" type="number" step="0.1" style="width:90px;text-align:right" data-fin-margem="custoFixoHora" value="${fin.custoFixoHora||0}"/>
+    </div>
   </div>
   <div style="background:var(--panel);border-top:2px solid var(--accent);padding:20px">
     <div class="sec-title">Overhead (%)</div>
@@ -2082,21 +2114,12 @@ function vFinParametros(){
     </div>`).join("")}
   </div>
   <div style="background:var(--panel);border-top:2px solid var(--accent);padding:20px">
-    <div class="sec-title">Cartão e custo fixo</div>
-    ${[["taxaCartao1x","Taxa cartão 1x / débito (%)"],["taxaCartao10x","Taxa cartão 10x (%)"],["custoFixoHora","Rateio custo fixo (R$/h)"]].map(([k,l])=>`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px">
+    <div class="sec-title">Formas de pagamento (cartão)</div>
+    ${[["taxaCartao1x","Taxa cartão 1x / débito (%)"],["taxaCartao10x","Taxa cartão 10x (%)"]].map(([k,l])=>`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px">
       <span style="font-size:12px">${l}</span>
       <input class="inp" type="number" step="0.1" style="width:80px;text-align:right" data-fin-margem="${k}" value="${fin[k]||0}"/>
     </div>`).join("")}
-  </div>
-  <div style="background:var(--panel);border-top:2px solid var(--accent);padding:20px">
-    <div class="sec-title">Participação da equipe (%)</div>
-    ${S.equipe.map(e=>`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px">
-      <span style="font-size:12px">${esc(e.pessoa)}</span>
-      <input class="inp" type="number" style="width:80px;text-align:right" data-fin-part="${esc(e.pessoa)}" value="${fin.participacao?.[e.pessoa]||0}"/>
-    </div>`).join("")}
-    <div style="font-size:10px;color:${Object.values(fin.participacao||{}).reduce((s,v)=>s+(+v||0),0)===100?'var(--green)':'var(--yellow)'};margin-top:8px">
-      Soma: ${Object.values(fin.participacao||{}).reduce((s,v)=>s+(+v||0),0)}% ${Object.values(fin.participacao||{}).reduce((s,v)=>s+(+v||0),0)!==100?'· se 0%, usa média simples das taxas':''}
-    </div>
+    <div style="font-size:9px;color:var(--dim);margin-top:8px;line-height:1.5">A participação de cada pessoa nos orçamentos agora é calculada automaticamente pelo responsável definido em cada entregável, dentro da própria proposta.</div>
   </div>
   <div style="background:var(--panel);border-top:2px solid var(--accent);padding:20px;grid-column:1/-1">
     <div class="sec-title">Fatores hora/m² por entregável</div>
@@ -2271,14 +2294,15 @@ function clienteModal(d){
 }
 
 // ===== CALCULADORA DE ORÇAMENTO =====
-const ORC_PARAM_KEYS=["lucro","impostos","negociacao","taxaCartao1x","taxaCartao10x","custoFixoHora"];
-function orcParamsDefault(){const p={};ORC_PARAM_KEYS.forEach(k=>p[k]=S.fin[k]||0);return p;}
+const ORC_PARAM_KEYS=["lucro","impostos","negociacao","taxaCartao1x","taxaCartao10x"];
+function orcParamsDefault(){const p={};ORC_PARAM_KEYS.forEach(k=>p[k]=S.fin[k]||0);p.multi={...S.fin.multi};return p;}
+function orcRespDefault(){const r={};const p0=S.equipe[0]?.pessoa||"";ORC_ENT.forEach(e=>r[e.k]=p0);return r;}
 function startOrc(){
   const esc0={};ORC_ENT.forEach(e=>esc0[e.k]={p1:e.p1,p2:e.p2,p3:e.p3});
   S.orc={step:0,travado:false,
     cliente:{nome:"",contato:"",tipo:PROP_TIPOS[0],interv:PROP_INTERV[0],meio:PROP_MEIOS[0],validade:"15 dias"},
     ambientes:[{amb:AMB_LIST[0],m2:0,padrao:"Médio",qtd:1}],
-    esc:esc0,terc:[],tercTpl:"",params:orcParamsDefault()};
+    esc:esc0,terc:[],tercTpl:"",params:orcParamsDefault(),resp:orcRespDefault()};
   loadTercTemplate("Residencial");
   S.modal={t:"orc",d:{}};
 }
@@ -2290,19 +2314,25 @@ function loadTercTemplate(tpl){
 }
 function orcCalc(o){
   const f={...S.fin,...(o.params||{})};
+  if(o.params?.multi)f.multi={...S.fin.multi,...o.params.multi};
   const mult=p=>f.multi[p]||1;
   const m2p=o.ambientes.reduce((s,a)=>s+(+a.m2||0)*mult(a.padrao)*(+a.qtd||1),0);
-  const parts=S.equipe.map(e=>({e,pct:+(f.participacao?.[e.pessoa]||0)}));
-  const somaPct=parts.reduce((s,p)=>s+p.pct,0);
-  const taxaMedia=somaPct>0
-    ?parts.reduce((s,p)=>s+taxaHora(p.e.pessoa)*(p.pct/100),0)
-    :(S.equipe.reduce((s,e)=>s+taxaHora(e.pessoa),0)/(S.equipe.length||1));
   const horasEnt=k=>{const ent=ORC_ENT.find(x=>x.k===k);const fat=f.fatores?.[k]!=null?+f.fatores[k]:ent.fator;return fat*m2p;};
+  const resp=k=>o.resp?.[k]||S.equipe[0]?.pessoa||"";
   const imp=(f.impostos||0)/100,folga=(f.negociacao||0)/100,lucro=(f.lucro||0)/100;
-  const tx10=(f.taxaCartao10x||15)/100,tx1=(f.taxaCartao1x||2)/100,cf=+f.custoFixoHora||0;
+  const tx10=(f.taxaCartao10x||15)/100,tx1=(f.taxaCartao1x||2)/100,cf=+S.fin.custoFixoHora||0;
+  // participação automática: hrs totais atribuídas a cada pessoa, em todos os entregáveis (independe do pacote)
+  const partHoras={};let partTotal=0;
+  ORC_ENT.forEach(e=>{const h=horasEnt(e.k);const p=resp(e.k);partHoras[p]=(partHoras[p]||0)+h;partTotal+=h;});
+  const participacao=Object.entries(partHoras).map(([pessoa,h])=>({pessoa,horas:h,pct:partTotal?Math.round(h/partTotal*1000)/10:0}))
+    .sort((a,b)=>b.horas-a.horas);
   const pac=p=>{
-    let horas=0;ORC_ENT.forEach(e=>{if(o.esc[e.k]?.[p])horas+=horasEnt(e.k);});
-    const mo=horas*(taxaMedia+cf);
+    let horas=0,mo=0;
+    ORC_ENT.forEach(e=>{
+      if(!o.esc[e.k]?.[p])return;
+      const h=horasEnt(e.k);horas+=h;
+      mo+=h*(taxaHora(resp(e.k))+cf);
+    });
     const terc=o.terc.filter(t=>t[p]&&(t.nome||'').trim()).reduce((s,t)=>s+(+t.qtd||0)*(+t.unit||0),0);
     const custo=mo+terc;
     const base=custo*(1+lucro);
@@ -2313,33 +2343,30 @@ function orcCalc(o){
     const c1=den1>0?base/den1/(1-folga):tabela;
     return {horas,mo,terc,custo,base,piso,tabela,c1,c10,liq:base,m2:m2p?tabela/m2p:0};
   };
-  return {m2p,taxaMedia,params:f,p1:pac('p1'),p2:pac('p2'),p3:pac('p3')};
+  return {m2p,participacao,params:f,p1:pac('p1'),p2:pac('p2'),p3:pac('p3')};
 }
 
 function orcModal(){
   const o=S.orc;if(!o)return"";
   const c=orcCalc(o);
   const n2=v=>(Math.round(v*10)/10).toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1});
-  const steps=["1 · Cliente","2 · Ambientes","3 · Escopo","4 · Resultado"];
+  const steps=["1 · Cliente e ambientes","2 · Escopo","3 · Resultado"];
   const stepBtns=steps.map((s,i)=>`<button data-orc-step="${i}" style="flex:1;padding:9px 4px;text-align:center;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:${o.step===i?'var(--accent)':i<o.step?'var(--green)':'var(--dim)'};border:none;border-bottom:2px solid ${o.step===i?'var(--accent)':'transparent'};background:var(--panel2);cursor:pointer;font-family:inherit;font-weight:${o.step===i?'700':'400'}">${s}</button>`).join("");
   let body="";
 
   if(o.step===0){
-    body=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div class="fld"><label class="l">Cliente</label><input class="inp" data-orc-f="nome" value="${esc(o.cliente.nome)}" placeholder="Nome do cliente" list="cli-list"/><datalist id="cli-list">${S.clientes.map(x=>`<option value="${esc(x.nome)}">`).join('')}</datalist></div>
-      <div class="fld"><label class="l">Contato / WhatsApp</label><input class="inp" data-orc-f="contato" value="${esc(o.cliente.contato)}"/></div>
-      <div class="fld"><label class="l">Tipo de projeto</label><select class="inp" data-orc-f="tipo">${PROP_TIPOS.map(t=>`<option ${t===o.cliente.tipo?"selected":""}>${t}</option>`).join("")}</select></div>
-      <div class="fld"><label class="l">Tipo de intervenção</label><select class="inp" data-orc-f="interv">${PROP_INTERV.map(t=>`<option ${t===o.cliente.interv?"selected":""}>${t}</option>`).join("")}</select></div>
-      <div class="fld"><label class="l">Meio de captação</label><select class="inp" data-orc-f="meio">${PROP_MEIOS.map(m=>`<option ${m===o.cliente.meio?"selected":""}>${m}</option>`).join("")}</select></div>
-      <div class="fld"><label class="l">Validade da proposta</label><input class="inp" data-orc-f="validade" value="${esc(o.cliente.validade)}"/></div>
-      <div class="fld" style="grid-column:1/-1"><label class="l">Endereço da obra (opcional)</label><input class="inp" data-orc-f="endObra" value="${esc(o.cliente.endObra||"")}" placeholder="migra para o projeto quando a proposta for aprovada"/></div>
-    </div>
-    <div style="font-size:10px;color:var(--dim);line-height:1.5">Se o cliente já existir no cadastro, será vinculado automaticamente. Senão, é criado ao lançar o orçamento.</div>`;
-  }
-
-  if(o.step===1){
     const dis1=o.travado?"disabled":"";
-    body=`<div style="display:flex;gap:6px;margin-bottom:6px;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px">
+    body=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="fld"><label class="l">Cliente</label><input class="inp" data-orc-f="nome" value="${esc(o.cliente.nome)}" placeholder="Nome do cliente" list="cli-list" ${dis1}/><datalist id="cli-list">${S.clientes.map(x=>`<option value="${esc(x.nome)}">`).join('')}</datalist></div>
+      <div class="fld"><label class="l">Contato / WhatsApp</label><input class="inp" data-orc-f="contato" value="${esc(o.cliente.contato)}" ${dis1}/></div>
+      <div class="fld"><label class="l">Tipo de projeto</label><select class="inp" data-orc-f="tipo" ${dis1}>${PROP_TIPOS.map(t=>`<option ${t===o.cliente.tipo?"selected":""}>${t}</option>`).join("")}</select></div>
+      <div class="fld"><label class="l">Tipo de intervenção</label><select class="inp" data-orc-f="interv" ${dis1}>${PROP_INTERV.map(t=>`<option ${t===o.cliente.interv?"selected":""}>${t}</option>`).join("")}</select></div>
+      <div class="fld"><label class="l">Meio de captação</label><select class="inp" data-orc-f="meio" ${dis1}>${PROP_MEIOS.map(m=>`<option ${m===o.cliente.meio?"selected":""}>${m}</option>`).join("")}</select></div>
+      <div class="fld"><label class="l">Validade da proposta</label><input class="inp" data-orc-f="validade" value="${esc(o.cliente.validade)}" ${dis1}/></div>
+      <div class="fld" style="grid-column:1/-1"><label class="l">Endereço da obra (opcional)</label><input class="inp" data-orc-f="endObra" value="${esc(o.cliente.endObra||"")}" placeholder="migra para o projeto quando a proposta for aprovada" ${dis1}/></div>
+    </div>
+    <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);font-weight:700;margin:16px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--line)">Programa de necessidades (ambientes)</div>
+    <div style="display:flex;gap:6px;margin-bottom:6px;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px">
       <div style="flex:2">Ambiente</div><div style="width:56px">m²</div><div style="width:76px">Padrão</div><div style="width:44px">Qtd</div><div style="width:56px;text-align:right">m² pond.</div><div style="width:20px"></div>
     </div>`;
     o.ambientes.forEach((a,i)=>{
@@ -2358,35 +2385,44 @@ function orcModal(){
       <span style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim)">Total m² ponderado</span>
       <span style="font-weight:700;font-size:15px;color:var(--green)">${n2(c.m2p)} m²</span>
     </div>
-    <div style="font-size:9px;color:var(--dim);margin-top:8px;line-height:1.5">m² ponderado = m² × multiplicador do padrão (${Object.entries(S.fin.multi).map(([k,v])=>k+' '+v).join(' · ')}) × quantidade.</div>`;
+    <div style="font-size:9px;color:var(--dim);margin-top:8px;line-height:1.5">Se o cliente já existir no cadastro, será vinculado automaticamente. m² ponderado = m² × multiplicador do padrão × quantidade.</div>`;
   }
 
-  if(o.step===2){
+  if(o.step===1){
     const dis=o.travado?"disabled":"";
     const tg=(on,attr)=>`<button ${attr} ${dis} style="width:34px;height:20px;border:1px solid ${on?'#155e4a':'var(--line)'};background:${on?'#0a2e25':'var(--panel2)'};color:${on?'var(--green)':'var(--dim)'};font-size:8px;font-weight:700;cursor:${o.travado?'default':'pointer'};font-family:inherit;flex-shrink:0;opacity:${o.travado?.5:1}">${on?'SIM':'NÃO'}</button>`;
-    const pl={lucro:"Lucro %",impostos:"Impostos %",negociacao:"Negociação %",taxaCartao1x:"Cartão 1x %",taxaCartao10x:"Cartão 10x %",custoFixoHora:"Custo fixo R$/h"};
+    const pl={lucro:"Lucro %",impostos:"Impostos %",negociacao:"Negociação %",taxaCartao1x:"Cartão 1x %",taxaCartao10x:"Cartão 10x %"};
     body=`<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);font-weight:700;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
       <span>Parâmetros deste orçamento</span>
-      <span style="font-size:8px;color:var(--dim);text-transform:none;letter-spacing:0">valores base em Financeiro → Parâmetros</span>
+      <span style="font-size:8px;color:var(--dim);text-transform:none;letter-spacing:0">overhead + multiplicadores + cartão · valores base em Parâmetros</span>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:8px;margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(85px,1fr));gap:8px;margin-bottom:10px">
       ${ORC_PARAM_KEYS.map(k=>`<div><label class="l" style="font-size:8px">${pl[k]}</label><input class="inp" data-orc-param="${k}" type="number" step="0.1" value="${o.params?.[k]??0}" ${dis} style="padding:6px 8px;font-size:11px;opacity:${o.travado?.6:1}"/></div>`).join("")}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(85px,1fr));gap:8px;margin-bottom:16px">
+      ${Object.keys(S.fin.multi).map(k=>`<div><label class="l" style="font-size:8px">Multi. ${k}</label><input class="inp" data-orc-multi="${k}" type="number" step="0.1" value="${o.params?.multi?.[k]??(S.fin.multi[k]||1)}" ${dis} style="padding:6px 8px;font-size:11px;opacity:${o.travado?.6:1}"/></div>`).join("")}
     </div>
     <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);font-weight:700;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--line)">Entregáveis por pacote</div>
     <div style="display:flex;align-items:center;gap:8px;padding-bottom:4px;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid var(--line)">
-      <div style="flex:1">Entregável</div><div style="width:48px;text-align:right">horas</div><div style="width:34px;text-align:center">P1</div><div style="width:34px;text-align:center">P2</div><div style="width:34px;text-align:center">P3</div>
+      <div style="flex:1">Entregável</div><div style="width:48px;text-align:right">horas</div><div style="width:100px">Responsável</div><div style="width:34px;text-align:center">P1</div><div style="width:34px;text-align:center">P2</div><div style="width:34px;text-align:center">P3</div>
     </div>`;
     ORC_ENT.forEach(e=>{
       const fat=S.fin.fatores?.[e.k]!=null?+S.fin.fatores[e.k]:e.fator;
       const hrs=fat*c.m2p;
       const st=o.esc[e.k];
+      const respAtual=o.resp?.[e.k]||S.equipe[0]?.pessoa||"";
       body+=`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--line)">
         <div style="flex:1;font-size:11px">${e.nome}</div>
         <div style="width:48px;text-align:right;font-size:9px;color:var(--dim)">${n2(hrs)}h</div>
+        <select class="inp" data-orc-resp="${e.k}" ${dis} style="width:100px;padding:4px 6px;font-size:10px">${S.equipe.map(eq=>`<option ${eq.pessoa===respAtual?"selected":""}>${esc(eq.pessoa)}</option>`).join("")}</select>
         ${tg(st.p1,`data-ent-tg="${e.k}|p1"`)}${tg(st.p2,`data-ent-tg="${e.k}|p2"`)}${tg(st.p3,`data-ent-tg="${e.k}|p3"`)}
       </div>`;
     });
-    body+=`<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);font-weight:700;margin:16px 0 6px;padding-bottom:5px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
+    body+=`<div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);font-weight:700;margin:14px 0 6px;padding-bottom:5px;border-bottom:1px solid var(--line)">Participação estimada (automática, pelo escopo)</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">
+      ${c.participacao.length?c.participacao.map(p=>`<div style="background:var(--panel2);padding:4px 10px;font-size:10px"><b style="color:var(--txt)">${esc(p.pessoa)}</b> <span style="color:var(--dim)">${p.pct}% · ${n2(p.horas)}h</span></div>`).join(""):`<div style="font-size:10px;color:var(--dim)">Defina ambientes para calcular.</div>`}
+    </div>
+    <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);font-weight:700;margin:16px 0 6px;padding-bottom:5px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
       <span>Terceiros e variáveis</span>
       <span style="display:flex;gap:4px">${o.travado?"":Object.keys(S.fin.tercTemplates||{}).map(t=>`<button data-orc-tpl="${t}" style="font-size:8px;padding:3px 7px;border:1px solid ${o.tercTpl===t?'var(--accent)':'var(--line)'};background:${o.tercTpl===t?'rgba(166,83,58,.12)':'var(--panel2)'};color:${o.tercTpl===t?'var(--accent)':'var(--dim)'};cursor:pointer;font-family:inherit;text-transform:none;letter-spacing:0">${t}</button>`).join('')}</span>
     </div>
@@ -2413,7 +2449,7 @@ function orcModal(){
     <div style="font-size:9px;color:var(--dim);margin-top:6px;line-height:1.5">${o.travado?"Orçamento aprovado — valores travados.":"Ao trocar o template, itens e valores são recarregados (edições manuais são perdidas). Alterações aqui não mexem no template salvo."}</div>`;
   }
 
-  if(o.step===3){
+  if(o.step===2){
     const pacBox=(nome,p,destaque)=>`<div style="border:1px solid ${destaque?'var(--accent)':'var(--line)'};padding:12px 10px;text-align:center;${destaque?'background:rgba(166,83,58,.08)':''}">
       <div style="font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:${destaque?'var(--accent)':'var(--dim)'};font-weight:700;margin-bottom:6px">${nome}</div>
       <div style="font-size:17px;font-weight:700">${fmtBRL(Math.round(p.tabela))}</div>
@@ -2424,7 +2460,7 @@ function orcModal(){
       ${pacBox('P1 Essencial',c.p1,false)}${pacBox('P2 Completo',c.p2,true)}${pacBox('P3 Premium',c.p3,false)}
     </div>
     <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);font-weight:700;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--line)">Detalhe — P2 Completo</div>
-    ${[["Custo mão de obra ("+n2(c.p2.horas)+"h × R$ "+n2(c.taxaMedia)+"/h)",fmtBRL(c.p2.mo)],
+    ${[["Custo mão de obra ("+n2(c.p2.horas)+"h, por responsável)",fmtBRL(c.p2.mo)],
        ["Terceiros",fmtBRL(c.p2.terc)],
        ["+ Lucro "+c.params.lucro+"% → preço base",fmtBRL(c.p2.base)],
        ["Piso à vista/PIX (gross-up imposto "+c.params.impostos+"%)",fmtBRL(c.p2.piso)]].map(([l,v])=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:10px;border-bottom:1px solid var(--line);color:var(--dim)"><span>${l}</span><span style="color:var(--txt)">${v}</span></div>`).join('')}
@@ -2432,20 +2468,22 @@ function orcModal(){
     <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:10px;border-bottom:1px solid var(--line);color:var(--dim)"><span>Cartão 1x/débito (taxa ${c.params.taxaCartao1x}%)</span><span style="color:var(--txt)">${fmtBRL(Math.round(c.p2.c1))}</span></div>
     <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:10px;border-bottom:1px solid var(--line);color:var(--dim)"><span>Cartão 10x (taxa ${c.params.taxaCartao10x}%)</span><span style="color:var(--txt)">${fmtBRL(Math.round(c.p2.c10))} · 10× ${fmtBRL(Math.round(c.p2.c10/10))}</span></div>
     <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:10px;color:var(--dim)"><span>Você recebe líquido (à vista ou cartão)</span><span style="color:var(--green);font-weight:700">${fmtBRL(c.p2.liq)}</span></div>
-    <div style="font-size:9px;color:var(--dim);margin-top:10px;line-height:1.5">O gross-up garante o mesmo lucro real à vista ou no cartão. Parâmetros ajustáveis no Passo 3 · Escopo deste orçamento.</div>`;
+    <div style="font-size:9px;color:var(--dim);margin-top:10px;line-height:1.5">O gross-up garante o mesmo lucro real à vista ou no cartão. Parâmetros ajustáveis no Passo 2 · Escopo deste orçamento.</div>`;
   }
 
-  return `<div class="ov"><div class="modal" style="max-width:640px" data-stop="1">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--line)">
-      <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:700">${o.editId?"Editar orçamento":"Novo orçamento"}</div>
-      <button data-orc-close="1" style="background:none;border:none;color:var(--dim);font-size:16px;cursor:pointer">✕</button>
+  return `<div class="ov"><div class="modal" style="max-width:640px;height:min(680px,88vh);display:flex;flex-direction:column;padding:0" data-stop="1">
+    <div style="padding:24px 24px 12px;flex-shrink:0">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--line)">
+        <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:700">${o.editId?"Editar orçamento":"Novo orçamento"}</div>
+        <button data-orc-close="1" style="background:none;border:none;color:var(--dim);font-size:16px;cursor:pointer">✕</button>
+      </div>
+      ${o.travado?`<div style="font-size:11px;color:var(--yellow);background:#2a2015;padding:10px 12px;margin-bottom:14px;border-left:3px solid var(--yellow)">🔒 Proposta aprovada pelo cliente — valores travados. Só consulta, sem edição.</div>`:""}
+      <div style="display:flex">${stepBtns}</div>
     </div>
-    ${o.travado?`<div style="font-size:11px;color:var(--yellow);background:#2a2015;padding:10px 12px;margin-bottom:14px;border-left:3px solid var(--yellow)">🔒 Proposta aprovada pelo cliente — valores travados. Só consulta, sem edição.</div>`:""}
-    <div style="display:flex;margin-bottom:16px">${stepBtns}</div>
-    ${body}
-    <div style="display:flex;justify-content:space-between;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--line)">
+    <div style="flex:1;min-height:0;overflow-y:auto;padding:16px 24px">${body}</div>
+    <div style="display:flex;justify-content:space-between;gap:8px;padding:14px 24px 24px;border-top:1px solid var(--line);flex-shrink:0">
       <button class="btn" data-orc-step="${Math.max(0,o.step-1)}" ${o.step===0?'style="visibility:hidden"':''}>← Voltar</button>
-      ${o.step<3
+      ${o.step<2
         ?`<button class="btnP" data-orc-step="${o.step+1}">Avançar →</button>`
         :(o.travado?`<button class="btn" data-orc-close="1">Fechar</button>`:`<button class="btnP" data-orc-launch="1">${o.editId?"Salvar alterações →":"Lançar orçamento →"}</button>`)}
     </div>
@@ -2461,7 +2499,8 @@ function startOrcFrom(p){
     esc:Object.assign(esc0,JSON.parse(JSON.stringify(o.esc||{}))),
     terc:(o.terc||[]).map(t=>({...t})),
     tercTpl:o.tercTpl||"",
-    params:{...orcParamsDefault(),...(o.params||{})}};
+    params:{...orcParamsDefault(),...(o.params||{}),multi:{...S.fin.multi,...(o.params?.multi||{})}},
+    resp:{...orcRespDefault(),...(o.resp||{})}};
   if(!S.orc.ambientes.length)S.orc.ambientes.push({amb:AMB_LIST[0],m2:0,padrao:"Médio",qtd:1});
   if(!S.orc.terc.length){
     const tpl=(S.fin.tercTemplates||{})[p.tipo]?p.tipo:"Residencial";
@@ -2485,8 +2524,9 @@ function ativsFromOrc(p,projNome){
     const horasTot=fat*m2p;
     const cats=CAT.filter(c=>(ORC2BLOCO[e.k]||[]).includes(c.et));
     const somaDef=cats.reduce((s,c)=>s+c.horas,0)||1;
+    const respE=o.resp?.[e.k]||S.equipe[0]?.pessoa||"";
     cats.forEach(c=>{
-      out.push({id:uid(),projeto:projNome,n:c.n,resp:S.equipe[0]?.pessoa||"",horas:Math.max(1,Math.round(horasTot*c.horas/somaDef)),ini:"",fim:"",status:"Planejada"});
+      out.push({id:uid(),projeto:projNome,n:c.n,resp:respE,horas:Math.max(1,Math.round(horasTot*c.horas/somaDef)),ini:"",fim:"",status:"Planejada"});
     });
   });
   return out.length?out:null;
@@ -2518,7 +2558,7 @@ function launchOrc(){
   else if(o.cliente.contato&&!cli.tel)cli.tel=o.cliente.contato;
   if(!S.fin.propostas)S.fin.propostas=[];
   const rnd=v=>Math.round(v);
-  const snap={cliente:{...o.cliente},ambientes:o.ambientes.map(a=>({...a})),esc:JSON.parse(JSON.stringify(o.esc)),terc:o.terc.map(t=>({...t})),tercTpl:o.tercTpl,params:{...o.params}};
+  const snap={cliente:{...o.cliente},ambientes:o.ambientes.map(a=>({...a})),esc:JSON.parse(JSON.stringify(o.esc)),terc:o.terc.map(t=>({...t})),tercTpl:o.tercTpl,params:{...o.params,multi:{...o.params.multi}},resp:{...o.resp}};
   const hoje=new Date().toISOString().slice(0,10);
   if(o.editId){
     const p=S.fin.propostas.find(x=>x.id===o.editId);
@@ -2551,7 +2591,7 @@ function launchOrc(){
     S.orc=null;S.modal=null;S.proj=syncAlvo;S.tab="projetos";
     save();r();return;
   }
-  S.orc=null;S.modal=null;S.tab="financeiro";S.finTab="pipeline";
+  S.orc=null;S.modal=null;S.tab="comercial";S.comTab="propostas";
   save();r();
 }
 
@@ -3141,6 +3181,7 @@ function bind(){
     S.tab=b.dataset.tab;S.proj=null;r();
   });
   document.querySelectorAll("[data-fin-tab]").forEach(b=>b.onclick=()=>{S.finTab=b.dataset.finTab;r();});
+  document.querySelectorAll("[data-com-tab]").forEach(b=>b.onclick=()=>{S.comTab=b.dataset.comTab;r();});
   document.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>{S.proj=b.dataset.open;r();});
   document.querySelectorAll("[data-back]").forEach(b=>b.onclick=()=>{S.proj=null;S.tab="projetos";r();});
   const vo=document.getElementById("vo");if(vo)vo.onchange=()=>{S.verOper=vo.checked;r();};
@@ -3226,6 +3267,8 @@ function bind(){
   A("[data-act='newcliente']",()=>{S.modal={t:"cliente",d:{origem:PROP_MEIOS[0]}};r();});
   document.querySelectorAll("[data-editcliente]").forEach(b=>b.onclick=()=>{const c=S.clientes.find(x=>x.id===b.dataset.editcliente);if(c){S.modal={t:"cliente",d:{...c}};r();}});
   document.querySelectorAll("[data-cli-open]").forEach(b=>b.onclick=()=>{S.clienteSel=b.dataset.cliOpen;r();});
+  document.querySelectorAll("[data-vercliente]").forEach(b=>b.onclick=()=>{S.clienteSel=b.dataset.vercliente;S.tab="clientes";r();});
+  document.querySelectorAll("[data-prop-hist]").forEach(b=>b.onclick=()=>{S.propHistOpen=S.propHistOpen===b.dataset.propHist?null:b.dataset.propHist;r();});
   A("[data-cli-back]",()=>{S.clienteSel=null;r();});
   const scli=document.querySelector("[data-savecliente]");
   if(scli)scli.onclick=()=>{
@@ -3276,6 +3319,8 @@ function bind(){
     document.querySelectorAll("[data-terc-del]").forEach(b=>b.onclick=()=>{S.orc.terc.splice(+b.dataset.tercDel,1);r();});
     document.querySelectorAll("[data-orc-tpl]").forEach(b=>b.onclick=()=>{loadTercTemplate(b.dataset.orcTpl);r();});
     document.querySelectorAll("[data-orc-param]").forEach(el=>el.onchange=()=>{S.orc.params[el.dataset.orcParam]=+String(el.value).replace(",",".")||0;r();});
+    document.querySelectorAll("[data-orc-multi]").forEach(el=>el.onchange=()=>{if(!S.orc.params.multi)S.orc.params.multi={};S.orc.params.multi[el.dataset.orcMulti]=+String(el.value).replace(",",".")||1;r();});
+    document.querySelectorAll("[data-orc-resp]").forEach(el=>el.onchange=()=>{if(!S.orc.resp)S.orc.resp={};S.orc.resp[el.dataset.orcResp]=el.value;r();});
     A("[data-orc-launch]",()=>{if(!S.orc.travado)launchOrc();});
   }
 
