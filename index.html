@@ -1165,11 +1165,15 @@ function vInicio(){
       </div>`;
     proxMinha.forEach(a=>{
       const isActive=S.timer?.ativId===a.id;
+      const atr=isAtrasada(a);
       out+=`<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:${isActive?'rgba(166,83,58,.15)':'var(--bg)'};border-top:1px solid var(--line)">
         <div class="dot" style="background:${SCOR[a.status]};flex-shrink:0"></div>
         <div style="flex:1;min-width:0">
-          <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(entOf(a.n))}</div>
-          <div style="font-size:9px;color:var(--dim)">${esc(a.projeto)}${a.fim?' · '+fmt(D(a.fim)):''}</div>
+          <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px">${esc(entOf(a.n))}</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">
+            <span style="font-size:12px;font-weight:600;background:var(--panel2);color:${corN(a.n)};padding:2px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px">${esc(a.projeto)}</span>
+            ${a.fim?`<span style="font-size:12px;font-weight:600;background:${atr?'#3A1A14':'var(--panel2)'};color:${atr?'var(--red)':'var(--warm)'};padding:2px 8px;white-space:nowrap">${atr?'⚠ ':''}${fmt(D(a.fim))}</span>`:''}
+          </div>
         </div>
         ${isActive
           ?`<button class="timer-btn timer-stop" data-act="stopTimer">■ Parar</button>`
@@ -3463,6 +3467,10 @@ function doImport(e){const f=e.target.files[0];if(!f||typeof XLSX==="undefined")
   save();r();};rd.readAsBinaryString(f);}
 r();
 if(SYNC.clientId&&syncConectado())syncPull(false);
+// Puxa dados da nuvem ao voltar para a aba/janela — cobre o caso de dois
+// dispositivos abertos ao mesmo tempo (celular + PC), evitando tela "presa" no passado.
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&SYNC.clientId&&syncConectado())syncPull(false);});
+window.addEventListener("focus",()=>{if(SYNC.clientId&&syncConectado())syncPull(false);});
 </script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" onload="void 0"></script>
 </body>
