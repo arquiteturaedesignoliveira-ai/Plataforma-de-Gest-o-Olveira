@@ -344,6 +344,48 @@ const SCOR={"Planejada":"#878685","Em andamento":"#0BA2D9","Aguardando cliente":
 const PSTAT=["Ativo","Em proposta","Pausado","Concluído"];
 const PCOR=s=>({"Ativo":"#00B89C","Em proposta":"#F39A00","Pausado":"#585857","Concluído":"#025F7F"}[s]||"#878685");
 
+// ===== PACOTES DE ESPECIFICAÇÃO TÉCNICA (Manual 02) =====
+// Cada pacote define suas colunas: [chave, rótulo, largura] — largura 0 = flexível.
+// "Ambiente" (Zona, na estrutura BIM) é comum a todos os pacotes.
+const ESPEC_PACOTES=[
+  {k:"p01",nome:"01 Acabamentos",cor:"#057B9E",
+   inclui:"Pinturas, texturas, revestimentos, papéis de parede, microcimento, rodapés, perfis, rejuntes",
+   cols:[["codigo","Código",78],["elemento","Elemento",0],["acabamento","Acabamento",0],["qtd","Qtd",56],["un","Un",48],["obs","Observações",0]]},
+  {k:"p02",nome:"02 Marmoraria",cor:"#0BA2D9",
+   inclui:"Bancadas, soleiras, peitoris, rodapés e nichos em pedra natural ou engenheirada",
+   cols:[["codigo","Código",78],["item","Item",0],["material","Material",0],["espessura","Espes.",64],["qtd","Qtd",56],["un","Un",48],["obs","Observações",0]]},
+  {k:"p03",nome:"03 Marcenaria",cor:"#2FF0D0",
+   inclui:"Armários, painéis, prateleiras, portas embutidas e peças sob medida",
+   cols:[["codigo","Código",78],["item","Item",0],["material","Material",0],["acabamento","Acabamento",0],["dimensoes","Dimensões",90],["qtd","Qtd",56],["un","Un",48]]},
+  {k:"p04",nome:"04 Vidros e Espelhos",cor:"#00B89C",
+   inclui:"Vidros temperados/laminados, espelhos, box, guarda-corpos e divisórias",
+   cols:[["codigo","Código",78],["item","Item",0],["material","Material",0],["espessura","Espes.",64],["qtd","Qtd",56],["un","Un",48],["obs","Observações",0]]},
+  {k:"p05",nome:"05 Louças e Metais",cor:"#8D1CD1",
+   inclui:"Cubas, vasos, torneiras, misturadores, chuveiros, ralos e acessórios hidráulicos",
+   cols:[["codigo","Código",78],["item","Item",0],["modelo","Modelo",0],["acabamento","Acabamento",0],["qtd","Qtd",56],["un","Un",48],["obs","Observações",0]]},
+  {k:"p06",nome:"06 Elétrica",cor:"#F39A00",
+   inclui:"Luminárias, fitas de LED, drivers, tomadas, interruptores e automação",
+   cols:[["codigo","Código",78],["item","Item",0],["modelo","Modelo",0],["potencia","Potência",72],["qtd","Qtd",56],["un","Un",48],["obs","Observações",0]]},
+  {k:"p07",nome:"07 Acessórios",cor:"#FFAE1A",
+   inclui:"Puxadores, ferragens, cabideiros, toalheiros, saboneteiras e afins",
+   cols:[["codigo","Código",78],["item","Item",0],["modelo","Modelo",0],["qtd","Qtd",56],["un","Un",48],["obs","Observações",0]]},
+  {k:"p08",nome:"08 Decoração",cor:"#C94D31",
+   inclui:"Mobiliário solto, tapetes, cortinas, objetos, quadros e vegetação",
+   cols:[["codigo","Código",78],["item","Item",0],["modelo","Modelo",0],["qtd","Qtd",56],["un","Un",48],["obs","Observações",0]]}
+];
+const ESPEC_UN=["un","m","m²","m³","pç","cj","vb","kg","L"];
+const ESPEC_STATUS=["Especificado","Aprovado","Cotado","Comprado","Instalado"];
+const ESPEC_SCOR={"Especificado":"#878685","Aprovado":"#00B89C","Cotado":"#0BA2D9","Comprado":"#F39A00","Instalado":"#8D1CD1"};
+const ESPEC_FLUXO=["Modelagem","Classificação","Propriedades","Tabelas","Pacotes","Pranchas","Orçamento","Compras","Execução","As Built"];
+const ESPEC_BIM=[
+  ["Classificação","O que o objeto é","Tipo do objeto"],
+  ["Layer","Grupo técnico","Grupo técnico"],
+  ["Zona","Ambiente","Ambiente"],
+  ["ID","Identificação","Código do item"],
+  ["Propriedades","Informações variáveis","Material, modelo, acabamento"],
+  ["Tabelas","Quantitativos","Quantidade e unidade"]
+];
+
 const uid=()=>typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():(Date.now().toString(36)+Math.random().toString(36).slice(2));
 const fmtBRL=v=>v==null?"—":"R$ "+Number(v).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
 
@@ -474,7 +516,8 @@ let S={
   projSecOpen:{gantt:false,cap:false},
   usuario:null,timer:null,timeEntries:[],
   clientes:[],clienteSel:null,orc:null,tplSel:"Residencial",
-  rdos:[],obraFiltro:""
+  rdos:[],obraFiltro:"",
+  espec:[],especProj:"",especPacote:"p01",especRef:false
 };
 try{
   const raw=localStorage.getItem("oad");
@@ -486,6 +529,7 @@ try{
     S.timeEntries=o.timeEntries||[];
     S.clientes=o.clientes||[];
     S.rdos=o.rdos||[];
+    S.espec=o.espec||[];
     if(o.fin)S.fin={...FIN_DEFAULT,...o.fin,
       taxas:{...FIN_DEFAULT.taxas,...(o.fin.taxas||{})},
       propostas:o.fin.propostas||[]
@@ -543,7 +587,7 @@ function autoExport(){
   localStorage.setItem("oad_backup_date",new Date().toISOString());
 }
 function save(){
-  try{localStorage.setItem("oad",JSON.stringify({equipe:S.equipe,projs:S.projs,ativ:S.ativ,fin:S.fin,timeEntries:S.timeEntries,clientes:S.clientes,rdos:S.rdos}));}catch(e){}
+  try{localStorage.setItem("oad",JSON.stringify({equipe:S.equipe,projs:S.projs,ativ:S.ativ,fin:S.fin,timeEntries:S.timeEntries,clientes:S.clientes,rdos:S.rdos,espec:S.espec}));}catch(e){}
   try{if(S.timer)localStorage.setItem("oad_timer",JSON.stringify(S.timer));else localStorage.removeItem("oad_timer");}catch(e){}
   try{localStorage.setItem("oad_updated",String(Date.now()));}catch(e){}
   if(SYNC.clientId&&SYNC.auto){clearTimeout(_syncTimer);_syncTimer=setTimeout(()=>syncPush(false),2500);}
@@ -557,7 +601,7 @@ try{const _s=localStorage.getItem("oad_sync");if(_s)SYNC={...SYNC,...JSON.parse(
 let _syncTimer=null,_gTok=null,_gTokExp=0;
 try{const _t=JSON.parse(localStorage.getItem("oad_gtok")||"null");if(_t&&_t.e>Date.now()){_gTok=_t.t;_gTokExp=_t.e;}}catch(e){}
 function syncSaveCfg(){try{localStorage.setItem("oad_sync",JSON.stringify(SYNC));}catch(e){}}
-function syncPayload(){return {equipe:S.equipe,projs:S.projs,ativ:S.ativ,fin:S.fin,timeEntries:S.timeEntries,clientes:S.clientes,rdos:S.rdos,updatedAt:Date.now(),device:navigator.userAgent.slice(0,60)};}
+function syncPayload(){return {equipe:S.equipe,projs:S.projs,ativ:S.ativ,fin:S.fin,timeEntries:S.timeEntries,clientes:S.clientes,rdos:S.rdos,espec:S.espec,updatedAt:Date.now(),device:navigator.userAgent.slice(0,60)};}
 function setSyncStatus(t,err){
   const el=document.getElementById("sync_status");
   if(el){el.textContent=t;el.style.color=err?"var(--red)":"var(--green)";}
@@ -608,14 +652,14 @@ async function gCreateFile(tok,payload){
 }
 function applyCloud(o){
   S.equipe=o.equipe||S.equipe;
-  S.projs=o.projs||[];S.ativ=o.ativ||[];S.timeEntries=o.timeEntries||[];S.clientes=o.clientes||[];S.rdos=o.rdos||[];
+  S.projs=o.projs||[];S.ativ=o.ativ||[];S.timeEntries=o.timeEntries||[];S.clientes=o.clientes||[];S.rdos=o.rdos||[];S.espec=o.espec||[];
   if(o.fin)S.fin={...FIN_DEFAULT,...o.fin,taxas:{...(o.fin.taxas||{})},propostas:o.fin.propostas||[]};
   if(!S.fin.tercTemplates)S.fin.tercTemplates=TERC_TPL_DEFAULT();
   if(!S.fin.fatores)S.fin.fatores={};
   if(!S.fin.participacao)S.fin.participacao={};
   if(!S.fin.contratos)S.fin.contratos=[];
   S.equipe.forEach((e,i)=>{if(e.isDiretor===undefined)e.isDiretor=e.funcao?.toLowerCase().includes('diretor')||i===0;});
-  try{localStorage.setItem("oad",JSON.stringify({equipe:S.equipe,projs:S.projs,ativ:S.ativ,fin:S.fin,timeEntries:S.timeEntries,clientes:S.clientes,rdos:S.rdos}));}catch(e){}
+  try{localStorage.setItem("oad",JSON.stringify({equipe:S.equipe,projs:S.projs,ativ:S.ativ,fin:S.fin,timeEntries:S.timeEntries,clientes:S.clientes,rdos:S.rdos,espec:S.espec}));}catch(e){}
 }
 function syncPush(interactive){
   if(!SYNC.clientId)return;
@@ -941,13 +985,14 @@ function view(){
   else if(S.tab==="minhas")body=vMinhas();
   else if(S.tab==="obra")body=vObra();
   else if(isDir&&S.tab==="projetos")body=vProjetos(tl);
+  else if(S.tab==="espec")body=vEspec();
   else if(isDir&&S.tab==="clientes")body=vClientes();
   else if(S.tab==="comercial"&&(isDir||S.fin.senhaFin))body=vComercial();
   else if(S.tab==="financeiro"&&(isDir||S.fin.senhaFin))body=vFinanceiro();
   else if(isDir&&S.tab==="parametros")body=vParametrosTab();
   else body=vInicio();
-  const dirTabs=[["inicio","Início"],["comercial","Comercial"],["projetos","Projetos"],["obra","Obra"],["clientes","Clientes"],["financeiro","Financeiro"],["parametros","Parâmetros"]];
-  const eqTabs=[["inicio","Início"],["minhas","Atividades"],["obra","Obra"],...(S.fin.senhaFin?[["comercial","Comercial"],["financeiro","Financeiro"]]:[])];
+  const dirTabs=[["inicio","Início"],["comercial","Comercial"],["projetos","Projetos"],["espec","Especificação"],["obra","Obra"],["clientes","Clientes"],["financeiro","Financeiro"],["parametros","Parâmetros"]];
+  const eqTabs=[["inicio","Início"],["minhas","Atividades"],["espec","Especificação"],["obra","Obra"],...(S.fin.senhaFin?[["comercial","Comercial"],["financeiro","Financeiro"]]:[])];
   const tabs=isDir?dirTabs:eqTabs;
   const activeTab=S.proj?"projetos":S.tab;
   return `<div class="hd">
@@ -1442,6 +1487,7 @@ function vProj(){
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px">
       ${isDir?`<button class="btn" data-act="revisarorc" title="Reabre a calculadora para alterar ambientes e escopo, e sincroniza o planejamento">Revisar escopo</button>`:""}
       <button class="btn" data-act="editproj">Editar</button>
+      <button class="btn" data-act="verespec" title="Quadros de especificação técnica deste projeto">Especificação${(()=>{const n=S.espec.filter(x=>x.projeto===S.proj).length;return n?" · "+n:"";})()}</button>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:0;border-top:1px solid var(--line);margin-top:16px">
       ${metrics.map(([l,v],i)=>`<div style="padding:12px 14px;${i?"border-left:1px solid var(--line)":""}"><div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:4px">${l}</div><div style="font-size:14px;font-weight:500">${v}</div></div>`).join("")}
@@ -2809,6 +2855,154 @@ function saveContrato(gen){
   if(gen&&ct)genContrato(ct);
 }
 
+// ===== ESPECIFICAÇÃO TÉCNICA (Manual 02 — Pacotes) =====
+function especPac(k){return ESPEC_PACOTES.find(p=>p.k===k)||ESPEC_PACOTES[0];}
+function especLinhas(proj,pk){return S.espec.filter(x=>x.projeto===proj&&x.pacote===pk);}
+
+function vEspec(){
+  const projs=S.projs.map(p=>p.nome);
+  if(!S.especProj||!projs.includes(S.especProj))S.especProj=projs[0]||"";
+  const proj=S.especProj;
+  const pk=S.especPacote||"p01";
+  const pac=especPac(pk);
+
+  let h=`<div class="row" style="margin-bottom:12px;flex-wrap:wrap;gap:8px">
+    <div class="sec-title" style="margin:0;border:none;padding:0">Especificação técnica</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn" data-espec-ref="1" style="${S.especRef?'border-color:var(--accent);color:var(--accent)':''}">${S.especRef?"▴":"▾"} Método</button>
+      <button class="btn" data-espec-export="1">Exportar CSV</button>
+    </div>
+  </div>`;
+
+  // Painel de referência (Manual 02) — recolhível
+  if(S.especRef){
+    h+=`<div style="background:var(--panel);border-top:2px solid var(--accent);padding:14px 16px;margin-bottom:14px">
+      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);font-weight:700;margin-bottom:8px">Princípios</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:4px 16px;font-size:10px;color:var(--warm);margin-bottom:14px">
+        ${["Um elemento possui apenas uma classificação técnica","As propriedades complementam a classificação","O modelo BIM é a fonte única da informação","Os quadros são organizados por Pacotes de Especificação"].map(t=>`<div style="display:flex;gap:6px"><span style="color:var(--accent)">·</span>${t}</div>`).join("")}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px">
+        <div>
+          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);font-weight:700;margin-bottom:6px">Estrutura BIM × informação</div>
+          ${ESPEC_BIM.map(([e,f,x])=>`<div style="display:flex;gap:8px;padding:3px 0;border-bottom:1px solid var(--line);font-size:10px">
+            <span style="width:88px;color:var(--accent2);font-weight:700;flex-shrink:0">${e}</span>
+            <span style="flex:1;color:var(--warm)">${f}</span>
+            <span style="color:var(--dim);font-size:9px">${x}</span>
+          </div>`).join("")}
+        </div>
+        <div>
+          <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);font-weight:700;margin-bottom:6px">Fluxo da informação</div>
+          <div style="display:flex;flex-wrap:wrap;gap:4px;align-items:center">
+            ${ESPEC_FLUXO.map((f,i)=>`${i?`<span style="color:var(--line);font-size:10px">→</span>`:""}<span style="font-size:9px;padding:3px 7px;background:var(--panel2);color:${i===4?'var(--accent)':'var(--warm)'};${i===4?'border:1px solid var(--accent)':''}">${f}</span>`).join("")}
+          </div>
+          <div style="font-size:9px;color:var(--dim);margin-top:8px;line-height:1.5">Os <b style="color:var(--accent)">Pacotes</b> são o ponto onde as tabelas do modelo viram quadros de especificação — a base das pranchas, do orçamento e das compras.</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  if(!projs.length)return h+`<div class="empty"><div class="empty-title">Nenhum projeto cadastrado</div><div class="muted">Crie um projeto para montar os quadros de especificação.</div></div>`;
+
+  // Seletor de projeto
+  h+=`<div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+    <span style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);font-weight:600">Projeto</span>
+    <select class="inp" data-espec-proj style="max-width:280px;padding:6px 8px;font-size:11px">${projs.map(p=>`<option ${p===proj?"selected":""}>${esc(p)}</option>`).join("")}</select>
+  </div>`;
+
+  // Abas dos 8 pacotes com contador
+  h+=`<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px">
+    ${ESPEC_PACOTES.map(p=>{
+      const n=especLinhas(proj,p.k).length;
+      const on=p.k===pk;
+      return `<button data-espec-pac="${p.k}" style="display:flex;align-items:center;gap:6px;font-size:10px;padding:5px 10px;border:1px solid ${on?p.cor:'var(--line)'};background:${on?'var(--panel)':'transparent'};color:${on?p.cor:'var(--dim)'};cursor:pointer;font-family:inherit;font-weight:${on?'700':'400'}">
+        <span style="width:6px;height:6px;background:${p.cor};flex-shrink:0"></span>${p.nome}${n?`<span style="color:${on?p.cor:'var(--dim)'};opacity:.75">${n}</span>`:""}
+      </button>`;
+    }).join("")}
+  </div>`;
+
+  const linhas=especLinhas(proj,pk);
+  const qtdTotal=linhas.reduce((s,l)=>s+(+l.qtd||0),0);
+
+  h+=`<div style="background:var(--panel);border-top:2px solid ${pac.cor};padding:12px 14px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+      <div style="flex:1;min-width:220px">
+        <div style="font-size:12px;font-weight:700;color:${pac.cor};letter-spacing:.5px">${pac.nome}</div>
+        <div style="font-size:9px;color:var(--dim);margin-top:2px;line-height:1.45">${pac.inclui}</div>
+      </div>
+      <div style="display:flex;gap:14px;align-items:center;flex-shrink:0">
+        <div style="text-align:right"><div style="font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim)">Itens</div><div style="font-size:15px;font-weight:700">${linhas.length}</div></div>
+        <div style="text-align:right"><div style="font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim)">Soma qtd</div><div style="font-size:15px;font-weight:700;color:${pac.cor}">${Math.round(qtdTotal*100)/100}</div></div>
+      </div>
+    </div>`;
+
+  // Cabeçalho da tabela
+  const cw=c=>c[2]?`width:${c[2]}px;flex-shrink:0`:`flex:1;min-width:90px`;
+  h+=`<div style="overflow-x:auto"><div style="min-width:820px">
+    <div style="display:flex;align-items:center;gap:5px;padding-bottom:5px;border-bottom:2px solid var(--line);font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px">
+      <div style="width:110px;flex-shrink:0">Ambiente (zona)</div>
+      ${pac.cols.map(c=>`<div style="${cw(c)}">${c[1]}</div>`).join("")}
+      <div style="width:96px;flex-shrink:0">Status</div>
+      <div style="width:18px;flex-shrink:0"></div>
+    </div>`;
+
+  if(!linhas.length){
+    h+=`<div style="font-size:10px;color:var(--dim);padding:14px 2px">Nenhum item neste pacote ainda. Use o botão abaixo para lançar a primeira linha.</div>`;
+  }else{
+    linhas.forEach(l=>{
+      h+=`<div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid var(--line)">
+        <input class="inp" data-esp-f="ambiente" data-id="${l.id}" value="${esc(l.ambiente||"")}" placeholder="ambiente" style="width:110px;flex-shrink:0;padding:4px 6px;font-size:10px"/>
+        ${pac.cols.map(c=>{
+          const k=c[0];
+          if(k==="un")return `<select class="inp" data-esp-f="un" data-id="${l.id}" style="${cw(c)};padding:4px;font-size:10px">${ESPEC_UN.map(u=>`<option ${u===(l.un||"un")?"selected":""}>${u}</option>`).join("")}</select>`;
+          if(k==="qtd")return `<input class="inp" data-esp-f="qtd" data-id="${l.id}" type="number" step="0.01" value="${l.qtd??""}" style="${cw(c)};padding:4px;font-size:10px;text-align:right"/>`;
+          return `<input class="inp" data-esp-f="${k}" data-id="${l.id}" value="${esc(l[k]||"")}" style="${cw(c)};padding:4px 6px;font-size:10px"/>`;
+        }).join("")}
+        <select class="inp" data-esp-f="status" data-id="${l.id}" style="width:96px;flex-shrink:0;padding:4px;font-size:9px;color:${ESPEC_SCOR[l.status]||"var(--dim)"}">${ESPEC_STATUS.map(s=>`<option ${s===(l.status||"Especificado")?"selected":""}>${s}</option>`).join("")}</select>
+        <button data-esp-del="${l.id}" title="Excluir" style="width:18px;flex-shrink:0;background:none;border:none;color:var(--red);cursor:pointer;font-size:12px;padding:0">✕</button>
+      </div>`;
+    });
+  }
+  h+=`</div></div>
+    <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+      <button class="btn" data-esp-add="1" style="border-style:dashed;color:var(--dim);padding:6px 12px;font-size:10px">+ adicionar item</button>
+      ${linhas.length?`<button class="btn" data-esp-add5="1" style="border-style:dashed;color:var(--dim);padding:6px 12px;font-size:10px">+ 5 linhas</button>`:""}
+    </div>
+  </div>`;
+
+  // Resumo por status (todos os pacotes do projeto)
+  const doProj=S.espec.filter(x=>x.projeto===proj);
+  if(doProj.length){
+    h+=`<div style="display:flex;gap:0;border:1px solid var(--line);margin-top:14px;flex-wrap:wrap">
+      ${ESPEC_STATUS.map((s,i)=>{
+        const n=doProj.filter(x=>(x.status||"Especificado")===s).length;
+        return `<div style="flex:1;min-width:96px;padding:8px 12px;${i?"border-left:1px solid var(--line)":""}">
+          <div style="font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:2px">${s}</div>
+          <div style="font-size:15px;font-weight:700;color:${n?ESPEC_SCOR[s]:"var(--dim)"}">${n}</div>
+        </div>`;
+      }).join("")}
+      <div style="flex:1;min-width:96px;padding:8px 12px;border-left:1px solid var(--line);background:var(--panel)">
+        <div style="font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:2px">Total do projeto</div>
+        <div style="font-size:15px;font-weight:700;color:var(--accent)">${doProj.length}</div>
+      </div>
+    </div>`;
+  }
+  return h;
+}
+
+function especExportCSV(){
+  const proj=S.especProj;
+  const linhas=S.espec.filter(x=>x.projeto===proj);
+  if(!linhas.length){alert("Nenhum item de especificação neste projeto.");return;}
+  const rows=[["Pacote","Ambiente","Código","Item/Elemento","Material","Modelo","Acabamento","Espessura","Dimensões","Potência","Quantidade","Unidade","Status","Observações"]];
+  ESPEC_PACOTES.forEach(p=>{
+    linhas.filter(l=>l.pacote===p.k).forEach(l=>{
+      rows.push([p.nome,l.ambiente||"",l.codigo||"",l.item||l.elemento||"",l.material||"",l.modelo||"",l.acabamento||"",l.espessura||"",l.dimensoes||"",l.potencia||"",l.qtd??"",l.un||"",l.status||"Especificado",l.obs||""]);
+    });
+  });
+  const csv=rows.map(r=>r.map(c=>`"${String(c==null?"":c).replace(/"/g,'""')}"`).join(",")).join("\n");
+  dl(new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"}),"Especificacao_"+proj.replace(/[^\w]+/g,"_")+".csv");
+}
+
 // ===== RDO / DIÁRIO DE OBRA =====
 function rdoDataBR(s){if(!s)return"";const p=String(s).slice(0,10).split("-");return p.length===3?p[2]+"/"+p[1]+"/"+p[0]:s;}
 function rdoClimaCor(c){return /forte|impratic/i.test(c||"")?"var(--red)":/chuva|nublado/i.test(c||"")?"var(--yellow)":"var(--green)";}
@@ -3569,6 +3763,25 @@ function bind(){
   A("[data-act='newrdo']",()=>{S.modal={t:"rdo",d:{data:new Date().toISOString().slice(0,10),clima:"Bom",periodo:"Dia todo",autor:S.usuario?.pessoa||"",fotos:[]}};r();});
   document.querySelectorAll("[data-rdo-edit]").forEach(b=>b.onclick=()=>{const x=S.rdos.find(z=>z.id===b.dataset.rdoEdit);if(x){S.modal={t:"rdo",d:{...x,fotos:[...(x.fotos||[])]}};r();}});
   const _obf=document.querySelector("[data-obra-filtro]");if(_obf)_obf.onchange=()=>{S.obraFiltro=_obf.value;r();};
+
+  // ESPECIFICAÇÃO TÉCNICA
+  const _epj=document.querySelector("[data-espec-proj]");if(_epj)_epj.onchange=()=>{S.especProj=_epj.value;r();};
+  document.querySelectorAll("[data-espec-pac]").forEach(b=>b.onclick=()=>{S.especPacote=b.dataset.especPac;r();});
+  A("[data-espec-ref]",()=>{S.especRef=!S.especRef;r();});
+  A("[data-espec-export]",()=>especExportCSV());
+  A("[data-act='verespec']",()=>{S.especProj=S.proj;S.proj=null;S.tab="espec";r();});
+  const _especNova=()=>({id:uid(),projeto:S.especProj,pacote:S.especPacote||"p01",ambiente:"",codigo:"",qtd:"",un:"un",status:"Especificado"});
+  A("[data-esp-add]",()=>{S.espec.push(_especNova());save();r();});
+  A("[data-esp-add5]",()=>{for(let i=0;i<5;i++)S.espec.push(_especNova());save();r();});
+  document.querySelectorAll("[data-esp-f]").forEach(el=>el.onchange=()=>{
+    const l=S.espec.find(x=>x.id===el.dataset.id);if(!l)return;
+    const f=el.dataset.espF;
+    l[f]=f==="qtd"?(+String(el.value).replace(",",".")||0):el.value;
+    save();if(f==="status")r();
+  });
+  document.querySelectorAll("[data-esp-del]").forEach(b=>b.onclick=()=>{
+    S.espec=S.espec.filter(x=>x.id!==b.dataset.espDel);save();r();
+  });
   const _rfin=document.getElementById("rdo_fotos");if(_rfin)_rfin.onchange=()=>{rdoCapture();rdoAddFotos(_rfin.files);};
   document.querySelectorAll("[data-rdo-delfoto]").forEach(b=>b.onclick=()=>{rdoCapture();(S.modal.d.fotos||[]).splice(+b.dataset.rdoDelfoto,1);r();});
   const _rpdf=document.querySelector("[data-rdo-pdf]");if(_rpdf)_rpdf.onclick=()=>{rdoCapture();genRDO(S.modal.d);};
@@ -3655,6 +3868,15 @@ function doImport(e){const f=e.target.files[0];if(!f||typeof XLSX==="undefined")
   if(wb.Sheets["PLANEJAMENTO"])S.ativ=XLSX.utils.sheet_to_json(wb.Sheets["PLANEJAMENTO"]).filter(x=>x.Projeto&&x["#"]).map(x=>({id:uid(),projeto:String(x.Projeto),n:+x["#"],resp:String(x.Responsável||"Você"),horas:+x.Horas||0,ini:nm(x.Início),fim:nm(x.Fim),status:String(x.Status||"Planejada")}));
   save();r();};rd.readAsBinaryString(f);}
 r();
+// Deep-link: abrir direto numa aba via hash — ex: #comercial, #financeiro/entradas
+(function(){
+  const hs=(location.hash||"").replace("#","");
+  if(!hs||!S.usuario)return;
+  const [t,sub]=hs.split("/");
+  if(t){S.tab=t;S.proj=null;}
+  if(sub){if(t==="financeiro")S.finTab=sub;if(t==="comercial")S.comTab=sub;}
+  r();
+})();
 if(SYNC.clientId&&syncConectado())syncPull(false);
 // Puxa dados da nuvem ao voltar para a aba/janela — cobre o caso de dois
 // dispositivos abertos ao mesmo tempo (celular + PC), evitando tela "presa" no passado.
