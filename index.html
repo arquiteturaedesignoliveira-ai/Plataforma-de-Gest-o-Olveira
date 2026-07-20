@@ -373,6 +373,18 @@ const ESPEC_PACOTES=[
    inclui:"Mobiliário solto, tapetes, cortinas, objetos, quadros e vegetação",
    cols:[["codigo","Código",78],["item","Item",0],["modelo","Modelo",0],["qtd","Qtd",56],["un","Un",48],["obs","Observações",0]]}
 ];
+// Catálogo de classificações por pacote (Manual 02) — alimenta o autocomplete
+// do campo Item/Elemento. Um elemento = uma classificação.
+const ESPEC_CLASS={
+  p01:["Pintura látex","Pintura esmalte","Pintura epóxi","Textura / grafiato","Massa corrida","Papel de parede","Revestimento cerâmico","Porcelanato","Pastilha","Revestimento 3D","Microcimento","Cimento queimado","Piso vinílico","Piso laminado","Piso de madeira","Deck","Carpete","Rodapé","Roda-teto / sanca","Perfil de acabamento","Rejunte","Argamassa colante","Forro","Impermeabilização"],
+  p02:["Bancada","Cuba esculpida","Frontão / saia","Soleira","Peitoril","Rodapé em pedra","Nicho","Prateleira em pedra","Degrau / espelho","Tampo de mesa","Revestimento de parede","Base de box"],
+  p03:["Armário superior","Armário inferior","Torre quente","Gaveteiro","Guarda-roupa","Sapateira","Adega","Painel ripado","Painel liso","Painel de TV","Rack / estante","Prateleira","Nicho","Bancada de madeira","Cabeceira","Mesa sob medida","Banco","Divisória","Porta embutida","Porta de correr"],
+  p04:["Espelho comum","Espelho bisotado","Espelho bronze / fumê","Box","Guarda-corpo","Divisória de vidro","Porta de vidro","Esquadria de vidro","Fechamento de sacada","Cobertura de vidro","Tampo de vidro","Vidro laminado","Vidro temperado","Vidro impresso / jateado"],
+  p05:["Cuba de apoio","Cuba de embutir","Lavatório","Tanque","Vaso sanitário","Caixa acoplada","Válvula de descarga","Bidê","Banheira","Torneira de bancada","Torneira de parede","Misturador","Monocomando","Chuveiro / ducha","Chuveiro de teto","Registro","Acabamento de registro","Ralo linear","Ralo comum","Sifão","Válvula de escoamento","Purificador"],
+  p06:["Spot de embutir","Spot direcionável","Luminária de sobrepor","Pendente","Plafon","Arandela","Lustre","Balizador","Luminária de piso","Trilho eletrificado","Fita de LED","Perfil de LED","Driver / fonte","Tomada 10A","Tomada 20A","Tomada USB","Interruptor simples","Interruptor paralelo","Dimmer","Sensor de presença","Ponto de dados","Ponto de TV","Quadro de distribuição","Módulo de automação","Ventilador de teto","Exaustor"],
+  p07:["Puxador","Perfil puxador","Maçaneta","Fechadura","Trinco","Dobradiça","Corrediça","Pistão a gás","Amortecedor","Roldana","Trilho de porta","Cabideiro","Toalheiro","Papeleira","Saboneteira","Barra de apoio","Gancho","Suporte de TV"],
+  p08:["Sofá","Poltrona","Cadeira","Banqueta","Puff","Mesa de jantar","Mesa de centro","Mesa lateral","Aparador","Cama","Criado-mudo","Tapete","Cortina","Persiana","Almofada","Manta","Quadro / arte","Espelho decorativo","Objeto decorativo","Vaso","Cachepô","Vegetação"]
+};
 const ESPEC_UN=["un","m","m²","m³","pç","cj","vb","kg","L"];
 const ESPEC_STATUS=["Especificado","Aprovado","Cotado","Comprado","Instalado"];
 const ESPEC_SCOR={"Especificado":"#878685","Aprovado":"#00B89C","Cotado":"#0BA2D9","Comprado":"#F39A00","Instalado":"#8D1CD1"};
@@ -384,6 +396,28 @@ const ESPEC_BIM=[
   ["ID","Identificação","Código do item"],
   ["Propriedades","Informações variáveis","Material, modelo, acabamento"],
   ["Tabelas","Quantitativos","Quantidade e unidade"]
+];
+// Finalidade × Estrutura BIM × Schedules — expansão do Manual 02 (Parte 4),
+// com o máximo de classificações/propriedades previstas na estrutura BIM.
+// [informação, classificação, layer, zona, propriedade, tabela, campo na schedule]
+const ESPEC_RELACAO=[
+  ["Tipo do objeto",1,0,0,0,0,"Item / Elemento"],
+  ["Grupo técnico",0,1,0,0,0,"Pacote (01–08)"],
+  ["Ambiente",0,0,1,0,0,"Ambiente (zona)"],
+  ["Código / ID",0,0,0,0,1,"Código"],
+  ["Material",0,0,0,1,0,"Material"],
+  ["Acabamento",0,0,0,1,0,"Acabamento"],
+  ["Modelo",0,0,0,1,0,"Modelo"],
+  ["Fabricante",0,0,0,1,0,"Observações"],
+  ["Fornecedor",0,0,0,1,0,"Observações"],
+  ["Instalador",0,0,0,1,0,"Observações"],
+  ["Espessura",0,0,0,1,0,"Espessura"],
+  ["Dimensões",0,0,0,1,0,"Dimensões"],
+  ["Potência",0,0,0,1,0,"Potência"],
+  ["Cor / referência",0,0,0,1,0,"Observações"],
+  ["Quantidade",0,0,0,0,1,"Quantidade"],
+  ["Unidade",0,0,0,0,1,"Unidade"],
+  ["Status de compra",0,0,0,0,1,"Status"]
 ];
 
 const uid=()=>typeof crypto!=="undefined"&&crypto.randomUUID?crypto.randomUUID():(Date.now().toString(36)+Math.random().toString(36).slice(2));
@@ -517,7 +551,8 @@ let S={
   usuario:null,timer:null,timeEntries:[],
   clientes:[],clienteSel:null,orc:null,tplSel:"Residencial",
   rdos:[],obraFiltro:"",
-  espec:[],especProj:"",especPacote:"p01",especRef:false
+  espec:[],especProj:"",especPacote:"p01",especRef:false,
+  trash:[]
 };
 try{
   const raw=localStorage.getItem("oad");
@@ -530,6 +565,7 @@ try{
     S.clientes=o.clientes||[];
     S.rdos=o.rdos||[];
     S.espec=o.espec||[];
+    S.trash=o.trash||[];
     if(o.fin)S.fin={...FIN_DEFAULT,...o.fin,
       taxas:{...FIN_DEFAULT.taxas,...(o.fin.taxas||{})},
       propostas:o.fin.propostas||[]
@@ -541,6 +577,8 @@ try{
   if(!S.fin.contratos)S.fin.contratos=[];
   // Garante isDiretor em dados legados
   S.equipe.forEach((e,i)=>{if(e.isDiretor===undefined)e.isDiretor=e.funcao?.toLowerCase().includes('diretor')||i===0;});
+  // Aplica as lápides da lixeira (exclusões feitas em outro aparelho)
+  applyTombstones();
   // Restaura usuário e timer da sessão
   const u=localStorage.getItem("oad_user");if(u)S.usuario=JSON.parse(u);
   const t=localStorage.getItem("oad_timer");if(t)S.timer=JSON.parse(t);
@@ -587,7 +625,7 @@ function autoExport(){
   localStorage.setItem("oad_backup_date",new Date().toISOString());
 }
 function save(){
-  try{localStorage.setItem("oad",JSON.stringify({equipe:S.equipe,projs:S.projs,ativ:S.ativ,fin:S.fin,timeEntries:S.timeEntries,clientes:S.clientes,rdos:S.rdos,espec:S.espec}));}catch(e){}
+  try{localStorage.setItem("oad",JSON.stringify({equipe:S.equipe,projs:S.projs,ativ:S.ativ,fin:S.fin,timeEntries:S.timeEntries,clientes:S.clientes,rdos:S.rdos,espec:S.espec,trash:S.trash}));}catch(e){}
   try{if(S.timer)localStorage.setItem("oad_timer",JSON.stringify(S.timer));else localStorage.removeItem("oad_timer");}catch(e){}
   try{localStorage.setItem("oad_updated",String(Date.now()));}catch(e){}
   if(SYNC.clientId&&SYNC.auto){clearTimeout(_syncTimer);_syncTimer=setTimeout(()=>syncPush(false),2500);}
@@ -596,12 +634,12 @@ function save(){
 // ===== SINCRONIZAÇÃO EM NUVEM (Google Drive) =====
 const SYNC_FILE="sistema-oliveira-dados.json";
 const SYNC_SCOPE="https://www.googleapis.com/auth/drive.file";
-let SYNC={clientId:"",fileId:"",auto:true,last:0};
+let SYNC={clientId:"",fileId:"",auto:true,last:0,baseAt:0};
 try{const _s=localStorage.getItem("oad_sync");if(_s)SYNC={...SYNC,...JSON.parse(_s)};}catch(e){}
 let _syncTimer=null,_gTok=null,_gTokExp=0;
 try{const _t=JSON.parse(localStorage.getItem("oad_gtok")||"null");if(_t&&_t.e>Date.now()){_gTok=_t.t;_gTokExp=_t.e;}}catch(e){}
 function syncSaveCfg(){try{localStorage.setItem("oad_sync",JSON.stringify(SYNC));}catch(e){}}
-function syncPayload(){return {equipe:S.equipe,projs:S.projs,ativ:S.ativ,fin:S.fin,timeEntries:S.timeEntries,clientes:S.clientes,rdos:S.rdos,espec:S.espec,updatedAt:Date.now(),device:navigator.userAgent.slice(0,60)};}
+function syncPayload(){return {equipe:S.equipe,projs:S.projs,ativ:S.ativ,fin:S.fin,timeEntries:S.timeEntries,clientes:S.clientes,rdos:S.rdos,espec:S.espec,trash:S.trash,updatedAt:Date.now(),device:navigator.userAgent.slice(0,60)};}
 function setSyncStatus(t,err){
   const el=document.getElementById("sync_status");
   if(el){el.textContent=t;el.style.color=err?"var(--red)":"var(--green)";}
@@ -650,24 +688,125 @@ async function gCreateFile(tok,payload){
   if(!r.ok)throw new Error("HTTP "+r.status);
   const j=await r.json();return j.id;
 }
+function persistLocal(){
+  try{localStorage.setItem("oad",JSON.stringify({equipe:S.equipe,projs:S.projs,ativ:S.ativ,fin:S.fin,timeEntries:S.timeEntries,clientes:S.clientes,rdos:S.rdos,espec:S.espec,trash:S.trash}));}catch(e){}
+}
+
+// ===== LIXEIRA SINCRONIZADA =====
+// Cada exclusão vira uma "lápide" que viaja na sincronização: mesmo que outro
+// aparelho ainda tenha o registro, a mesclagem sabe que ele foi excluído e não
+// o ressuscita. A lixeira permite restaurar (o registro volta e propaga) ou
+// excluir definitivamente (a lápide fica, invisível, só como supressora).
+const TRASH_TIPOS={projs:"Projeto",ativ:"Atividade",clientes:"Cliente",equipe:"Pessoa",propostas:"Proposta",contratos:"Contrato",rdos:"RDO",espec:"Especificação",timeEntries:"Registro de horas"};
+function trashCol(tipo){
+  if(tipo==="propostas")return S.fin.propostas;
+  if(tipo==="contratos")return S.fin.contratos;
+  return S[tipo];
+}
+function toTrash(tipo,obj,label){
+  if(!obj||obj.id==null)return;
+  S.trash=S.trash||[];
+  const k=tipo+"|"+obj.id;
+  S.trash=S.trash.filter(t=>t.tipo+"|"+t.id!==k); // uma lápide por registro (a mais recente)
+  S.trash.push({id:obj.id,tipo,nome:label||obj.nome||obj.cliente||(obj.n?entOf(obj.n):"")||"(sem nome)",data:new Date().toISOString(),ts:Date.now(),obj});
+}
+// Remove das coleções tudo que tem lápide ativa (não restaurada)
+function applyTombstones(){
+  const del={};
+  (S.trash||[]).forEach(t=>{if(!t.restored)(del[t.tipo]=del[t.tipo]||new Set()).add(t.id);});
+  const f=(arr,tipo)=>del[tipo]?arr.filter(x=>!del[tipo].has(x.id)):arr;
+  S.projs=f(S.projs,"projs");S.ativ=f(S.ativ,"ativ");S.clientes=f(S.clientes,"clientes");
+  S.equipe=f(S.equipe,"equipe");S.rdos=f(S.rdos,"rdos");S.espec=f(S.espec,"espec");
+  S.timeEntries=f(S.timeEntries,"timeEntries");
+  S.fin.propostas=f(S.fin.propostas||[],"propostas");S.fin.contratos=f(S.fin.contratos||[],"contratos");
+}
+// Mescla lápides entre aparelhos: para a mesma lápide, vence a versão com
+// carimbo mais novo (assim uma restauração feita num aparelho vale em todos).
+function mergeTrash(localArr,cloudArr){
+  const m=new Map();
+  const put=t=>{if(!t||t.id==null)return;const k=t.tipo+"|"+t.id;const ex=m.get(k);if(!ex||(+t.ts||0)>=(+ex.ts||0))m.set(k,t);};
+  (cloudArr||[]).forEach(put);(localArr||[]).forEach(put);
+  return Array.from(m.values());
+}
+function trashRestore(key){
+  const t=(S.trash||[]).find(x=>x.tipo+"|"+x.id===key);
+  if(!t)return;
+  t.restored=true;t.ts=Date.now();
+  if(t.obj){
+    const col=trashCol(t.tipo);
+    if(col&&!col.some(x=>x.id===t.id))col.push(t.obj);
+  }
+  save();r();
+}
+function trashPurge(key){
+  const t=(S.trash||[]).find(x=>x.tipo+"|"+x.id===key);
+  if(!t)return;
+  t.purged=true;t.ts=Date.now();delete t.obj;
+  save();r();
+}
 function applyCloud(o){
   S.equipe=o.equipe||S.equipe;
-  S.projs=o.projs||[];S.ativ=o.ativ||[];S.timeEntries=o.timeEntries||[];S.clientes=o.clientes||[];S.rdos=o.rdos||[];S.espec=o.espec||[];
+  S.projs=o.projs||[];S.ativ=o.ativ||[];S.timeEntries=o.timeEntries||[];S.clientes=o.clientes||[];S.rdos=o.rdos||[];S.espec=o.espec||[];S.trash=o.trash||[];
   if(o.fin)S.fin={...FIN_DEFAULT,...o.fin,taxas:{...(o.fin.taxas||{})},propostas:o.fin.propostas||[]};
   if(!S.fin.tercTemplates)S.fin.tercTemplates=TERC_TPL_DEFAULT();
   if(!S.fin.fatores)S.fin.fatores={};
   if(!S.fin.participacao)S.fin.participacao={};
   if(!S.fin.contratos)S.fin.contratos=[];
   S.equipe.forEach((e,i)=>{if(e.isDiretor===undefined)e.isDiretor=e.funcao?.toLowerCase().includes('diretor')||i===0;});
-  try{localStorage.setItem("oad",JSON.stringify({equipe:S.equipe,projs:S.projs,ativ:S.ativ,fin:S.fin,timeEntries:S.timeEntries,clientes:S.clientes,rdos:S.rdos,espec:S.espec}));}catch(e){}
+  persistLocal();
 }
+// Mescla por registro (id): o que só existe na nuvem entra, o que só existe
+// aqui permanece; se o MESMO registro existir dos dois lados, o local vence
+// (é a versão mais recente vista nesta máquina). Nada é descartado em bloco.
+function mergeById(localArr,cloudArr){
+  const m=new Map();
+  (cloudArr||[]).forEach(x=>{if(x&&x.id!=null)m.set(x.id,x);});
+  (localArr||[]).forEach(x=>{if(x&&x.id!=null)m.set(x.id,x);});
+  return Array.from(m.values());
+}
+function mergeCloud(rec){
+  S.equipe=mergeById(S.equipe,rec.equipe);
+  S.projs=mergeById(S.projs,rec.projs);
+  S.ativ=mergeById(S.ativ,rec.ativ);
+  S.timeEntries=mergeById(S.timeEntries,rec.timeEntries);
+  S.clientes=mergeById(S.clientes,rec.clientes);
+  S.rdos=mergeById(S.rdos,rec.rdos);
+  S.espec=mergeById(S.espec,rec.espec);
+  const cf=rec.fin||{};
+  S.fin={...FIN_DEFAULT,...cf,...S.fin,
+    taxas:{...(cf.taxas||{}),...(S.fin.taxas||{})},
+    fatores:{...(cf.fatores||{}),...(S.fin.fatores||{})},
+    participacao:{...(cf.participacao||{}),...(S.fin.participacao||{})},
+    multi:{...(cf.multi||{}),...(S.fin.multi||{})},
+    tercTemplates:S.fin.tercTemplates||cf.tercTemplates||TERC_TPL_DEFAULT(),
+    propostas:mergeById(S.fin.propostas,cf.propostas),
+    contratos:mergeById(S.fin.contratos,cf.contratos)
+  };
+  S.trash=mergeTrash(S.trash,rec.trash);
+  applyTombstones();
+  S.equipe.forEach((e,i)=>{if(e.isDiretor===undefined)e.isDiretor=e.funcao?.toLowerCase().includes('diretor')||i===0;});
+  persistLocal();
+}
+let _syncBusy=false;
 function syncPush(interactive){
   if(!SYNC.clientId)return;
+  if(_syncBusy){clearTimeout(_syncTimer);_syncTimer=setTimeout(()=>syncPush(false),3000);return;}
   gToken(async tok=>{
     if(!tok){setSyncStatus("desconectado — clique em Conectar ao Google",true);return;}
+    _syncBusy=true;
     try{
-      setSyncStatus("enviando ao Drive…");
+      setSyncStatus("sincronizando…");
       if(!SYNC.fileId)SYNC.fileId=await gFindFile(tok);
+      // Antes de enviar: se a nuvem avançou desde a nossa última sincronização,
+      // mescla o que veio de lá — assim NUNCA sobrescrevemos alterações de outro aparelho.
+      if(SYNC.fileId){
+        const r0=await fetch("https://www.googleapis.com/drive/v3/files/"+SYNC.fileId+"?alt=media",{headers:{Authorization:"Bearer "+tok}});
+        if(r0.ok){
+          const rec=await r0.json();
+          const cloudAt=+(rec.updatedAt||0);
+          if(cloudAt>(+SYNC.baseAt||0)){mergeCloud(rec);r();}
+        }
+      }
       const payload=syncPayload();
       if(!SYNC.fileId){
         SYNC.fileId=await gCreateFile(tok,payload);
@@ -677,15 +816,16 @@ function syncPush(interactive){
         if(!r.ok)throw new Error("HTTP "+r.status);
       }
       try{localStorage.setItem("oad_updated",String(payload.updatedAt));}catch(e){}
-      SYNC.last=Date.now();syncSaveCfg();
-      setSyncStatus("✓ salvo no Drive às "+new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}));
-    }catch(e){setSyncStatus("erro ao enviar — "+e.message,true);}
+      SYNC.baseAt=payload.updatedAt;SYNC.last=Date.now();syncSaveCfg();
+      setSyncStatus("✓ sincronizado às "+new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}));
+    }catch(e){setSyncStatus("erro ao sincronizar — "+e.message,true);}
+    finally{_syncBusy=false;}
   },interactive);
 }
 function syncPull(manual){
   if(!SYNC.clientId)return;
   gToken(async tok=>{
-    if(!tok){setSyncStatus("desconectado — clique em Conectar ao Google",true);return;}
+    if(!tok){if(manual)setSyncStatus("desconectado — clique em Conectar ao Google",true);return;}
     try{
       setSyncStatus("baixando do Drive…");
       if(!SYNC.fileId)SYNC.fileId=await gFindFile(tok);
@@ -696,11 +836,20 @@ function syncPull(manual){
       const rec=await r2.json();
       const localAt=+(localStorage.getItem("oad_updated")||0);
       const cloudAt=+(rec.updatedAt||0);
-      if(manual||cloudAt>localAt){
+      if(manual){
+        // "Baixar do Drive" = substituição explícita pela versão da nuvem
+        if(!confirm("Substituir os dados deste aparelho pela versão da nuvem?\n\nAlterações locais ainda não sincronizadas serão perdidas. Para juntar em vez de substituir, use Enviar agora."))
+          {setSyncStatus("download cancelado");return;}
         applyCloud(rec);
         try{localStorage.setItem("oad_updated",String(cloudAt||Date.now()));}catch(e){}
-        SYNC.last=Date.now();syncSaveCfg();
+        SYNC.baseAt=cloudAt;SYNC.last=Date.now();syncSaveCfg();
+        r();setTimeout(()=>setSyncStatus("✓ dados substituídos pelos da nuvem"),50);
+      }else if(cloudAt>(+SYNC.baseAt||0)){
+        // Automático: MESCLA (nunca descarta o que só existe aqui)
+        mergeCloud(rec);
+        SYNC.baseAt=cloudAt;SYNC.last=Date.now();syncSaveCfg();
         r();setTimeout(()=>setSyncStatus("✓ dados atualizados do Drive"),50);
+        if(cloudAt<localAt)syncPush(false); // local também tinha novidades → sobe o resultado
       }else if(cloudAt<localAt){
         syncPush(false);
       }else{
@@ -2302,6 +2451,22 @@ function vFinParametros(){
     <div id="msg_senhafin" style="font-size:10px;margin-top:6px;min-height:14px"></div>
     ${fin.senhaFin?`<button class="btn" id="btn_remove_senhafin" style="width:100%;margin-top:6px;color:var(--red);border-color:var(--red);padding:6px;font-size:10px">Desativar acesso da equipe</button>`:""}
   </div>
+  ${(()=>{
+    const itens=(S.trash||[]).filter(t=>!t.restored&&!t.purged).sort((a,b)=>(b.ts||0)-(a.ts||0));
+    return `<div style="background:var(--panel);border-top:2px solid var(--red);padding:12px 14px;grid-column:1/-1">
+    <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);font-weight:600;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
+      <span>Lixeira <span style="letter-spacing:0;text-transform:none;font-weight:400">· ${itens.length} ite${itens.length===1?"m":"ns"}</span></span>
+      ${itens.length?`<button class="btn" data-trash-empty="1" style="padding:4px 10px;font-size:9px;color:var(--red);border-color:var(--red)">Esvaziar lixeira</button>`:""}
+    </div>
+    <div style="font-size:9px;color:var(--dim);margin-bottom:8px;line-height:1.5">Exclusões ficam aqui e valem em todos os aparelhos (não ressuscitam na sincronização). Restaurar traz o item de volta em todos; excluir definitivamente remove para sempre.</div>
+    ${itens.length?itens.slice(0,40).map(t=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--line)">
+      <span style="font-size:8px;letter-spacing:1px;text-transform:uppercase;background:var(--panel2);color:var(--dim);padding:2px 7px;flex-shrink:0;min-width:74px;text-align:center">${TRASH_TIPOS[t.tipo]||t.tipo}</span>
+      <span style="flex:1;min-width:0;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.nome||"(sem nome)")}</span>
+      <span style="font-size:9px;color:var(--dim);flex-shrink:0">${t.data?new Date(t.data).toLocaleDateString("pt-BR",{day:"2-digit",month:"short"})+" "+new Date(t.data).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}):""}</span>
+      ${t.obj?`<button class="btn" data-trash-restore="${esc(t.tipo+"|"+t.id)}" style="padding:3px 9px;font-size:9px;color:var(--green);border-color:var(--green)">Restaurar</button>`:`<span style="font-size:8px;color:var(--dim)">sem cópia</span>`}
+      <button class="btn" data-trash-purge="${esc(t.tipo+"|"+t.id)}" style="padding:3px 9px;font-size:9px;color:var(--red);border-color:var(--red)">Excluir def.</button>
+    </div>`).join("")+(itens.length>40?`<div style="font-size:9px;color:var(--dim);padding:6px 0">… e mais ${itens.length-40} itens antigos.</div>`:""):`<div style="font-size:10px;color:var(--dim);padding:4px 0">Lixeira vazia.</div>`}
+  </div>`;})()}
   </div>`;
 }
 
@@ -2643,6 +2808,8 @@ function syncProjFromOrc(projNome,prop){
     if(ex){ex.horas=na.horas;kept.push(ex);}
     else kept.push(na);
   });
+  const keptIds=new Set(kept.map(a=>a.id));
+  S.ativ.filter(a=>a.projeto===projNome&&!keptIds.has(a.id)).forEach(a=>toTrash("ativ",a));
   S.ativ=S.ativ.filter(a=>a.projeto!==projNome).concat(kept);
   return true;
 }
@@ -2898,6 +3065,24 @@ function vEspec(){
           <div style="font-size:9px;color:var(--dim);margin-top:8px;line-height:1.5">Os <b style="color:var(--accent)">Pacotes</b> são o ponto onde as tabelas do modelo viram quadros de especificação — a base das pranchas, do orçamento e das compras.</div>
         </div>
       </div>
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">
+        <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);font-weight:700;margin-bottom:6px">Finalidade × Estrutura BIM × Schedules</div>
+        <div style="overflow-x:auto"><div style="min-width:640px">
+        <div style="display:flex;gap:6px;font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px;padding-bottom:5px;border-bottom:2px solid var(--line)">
+          <div style="width:110px;flex-shrink:0">Informação</div><div style="width:90px;flex-shrink:0;text-align:center">Class.</div><div style="width:90px;flex-shrink:0;text-align:center">Layer</div><div style="width:70px;flex-shrink:0;text-align:center">Zona</div><div style="width:90px;flex-shrink:0;text-align:center">Propried.</div><div style="width:80px;flex-shrink:0;text-align:center">Tabela</div><div style="flex:1;min-width:150px">Campo na schedule</div>
+        </div>
+        ${ESPEC_RELACAO.map(r=>`<div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--line);font-size:10px;align-items:center">
+          <div style="width:110px;flex-shrink:0;color:var(--accent2);font-weight:700">${r[0]}</div>
+          <div style="width:90px;flex-shrink:0;text-align:center">${r[1]?"<span style='color:var(--green)'>✓</span>":""}</div>
+          <div style="width:90px;flex-shrink:0;text-align:center">${r[2]?"<span style='color:var(--green)'>✓</span>":""}</div>
+          <div style="width:70px;flex-shrink:0;text-align:center">${r[3]?"<span style='color:var(--green)'>✓</span>":""}</div>
+          <div style="width:90px;flex-shrink:0;text-align:center">${r[4]?"<span style='color:var(--green)'>✓</span>":""}</div>
+          <div style="width:80px;flex-shrink:0;text-align:center">${r[5]?"<span style='color:var(--green)'>✓</span>":""}</div>
+          <div style="flex:1;min-width:150px;color:var(--dim);font-size:9px">${r[6]}</div>
+        </div>`).join("")}
+        </div></div>
+        <div style="font-size:9px;color:var(--dim);margin-top:8px;line-height:1.5">Cada linha do quadro de especificação (schedule) é gerada a partir de um campo do modelo. "Campo na schedule" mostra o nome de coluna correspondente nos Pacotes desta página.</div>
+      </div>
     </div>`;
   }
 
@@ -2937,7 +3122,9 @@ function vEspec(){
 
   // Cabeçalho da tabela
   const cw=c=>c[2]?`width:${c[2]}px;flex-shrink:0`:`flex:1;min-width:90px`;
-  h+=`<div style="overflow-x:auto"><div style="min-width:820px">
+  const classDlId="espclass-"+pk;
+  h+=`<datalist id="${classDlId}">${(ESPEC_CLASS[pk]||[]).map(x=>`<option value="${esc(x)}">`).join("")}</datalist>
+  <div style="overflow-x:auto"><div style="min-width:820px">
     <div style="display:flex;align-items:center;gap:5px;padding-bottom:5px;border-bottom:2px solid var(--line);font-size:8px;color:var(--dim);text-transform:uppercase;letter-spacing:1px">
       <div style="width:110px;flex-shrink:0">Ambiente (zona)</div>
       ${pac.cols.map(c=>`<div style="${cw(c)}">${c[1]}</div>`).join("")}
@@ -2948,6 +3135,7 @@ function vEspec(){
   if(!linhas.length){
     h+=`<div style="font-size:10px;color:var(--dim);padding:14px 2px">Nenhum item neste pacote ainda. Use o botão abaixo para lançar a primeira linha.</div>`;
   }else{
+    const classKey=pac.cols.find(c=>c[0]==="elemento"||c[0]==="item")?.[0];
     linhas.forEach(l=>{
       h+=`<div style="display:flex;align-items:center;gap:5px;padding:3px 0;border-bottom:1px solid var(--line)">
         <input class="inp" data-esp-f="ambiente" data-id="${l.id}" value="${esc(l.ambiente||"")}" placeholder="ambiente" style="width:110px;flex-shrink:0;padding:4px 6px;font-size:10px"/>
@@ -2955,6 +3143,7 @@ function vEspec(){
           const k=c[0];
           if(k==="un")return `<select class="inp" data-esp-f="un" data-id="${l.id}" style="${cw(c)};padding:4px;font-size:10px">${ESPEC_UN.map(u=>`<option ${u===(l.un||"un")?"selected":""}>${u}</option>`).join("")}</select>`;
           if(k==="qtd")return `<input class="inp" data-esp-f="qtd" data-id="${l.id}" type="number" step="0.01" value="${l.qtd??""}" style="${cw(c)};padding:4px;font-size:10px;text-align:right"/>`;
+          if(k===classKey)return `<input class="inp" data-esp-f="${k}" data-id="${l.id}" value="${esc(l[k]||"")}" list="${classDlId}" placeholder="classificação…" style="${cw(c)};padding:4px 6px;font-size:10px"/>`;
           return `<input class="inp" data-esp-f="${k}" data-id="${l.id}" value="${esc(l[k]||"")}" style="${cw(c)};padding:4px 6px;font-size:10px"/>`;
         }).join("")}
         <select class="inp" data-esp-f="status" data-id="${l.id}" style="width:96px;flex-shrink:0;padding:4px;font-size:9px;color:${ESPEC_SCOR[l.status]||"var(--dim)"}">${ESPEC_STATUS.map(s=>`<option ${s===(l.status||"Especificado")?"selected":""}>${s}</option>`).join("")}</select>
@@ -3521,6 +3710,7 @@ function bind(){
     S.modal=null;save();r();
   };
   document.querySelectorAll("[data-delprop]").forEach(b=>b.onclick=()=>{
+    const _p=(S.fin.propostas||[]).find(p=>p.id===b.dataset.delprop);if(_p)toTrash("propostas",_p,"Proposta #"+(_p.num||"")+" — "+(_p.cliente||""));
     S.fin.propostas=(S.fin.propostas||[]).filter(p=>p.id!==b.dataset.delprop);
     S.modal=null;save();r();
   });
@@ -3541,7 +3731,7 @@ function bind(){
     else{S.clientes.push({...o,id:uid(),hist:[]});}
     S.modal=null;save();r();
   };
-  document.querySelectorAll("[data-delcliente]").forEach(b=>b.onclick=()=>{S.clientes=S.clientes.filter(c=>c.id!==b.dataset.delcliente);S.clienteSel=null;S.modal=null;save();r();});
+  document.querySelectorAll("[data-delcliente]").forEach(b=>b.onclick=()=>{const _c=S.clientes.find(c=>c.id===b.dataset.delcliente);if(_c)toTrash("clientes",_c);S.clientes=S.clientes.filter(c=>c.id!==b.dataset.delcliente);S.clienteSel=null;S.modal=null;save();r();});
   A("[data-add-contato]",()=>{
     const c=S.clientes.find(x=>x.id===S.clienteSel);const txt=val("ct_txt").trim();
     if(!c||!txt)return;
@@ -3619,6 +3809,7 @@ function bind(){
   });
   document.querySelectorAll("[data-delctr]").forEach(b=>b.onclick=()=>{
     if(!confirm("Excluir este contrato e todas as parcelas?"))return;
+    const _ct=(S.fin.contratos||[]).find(x=>x.id===b.dataset.delctr);if(_ct)toTrash("contratos",_ct);
     S.fin.contratos=(S.fin.contratos||[]).filter(x=>x.id!==b.dataset.delctr);
     S.ctrOpen=null;save();r();
   });
@@ -3660,6 +3851,14 @@ function bind(){
     const[i,p]=b.dataset.tplTg.split("|");t[+i][p]=t[+i][p]?0:1;save();r();
   });
   A("[data-tpl-add]",()=>{const t=(S.fin.tercTemplates||{})[S.tplSel];if(!t)return;t.push({nome:"Novo item",qtd:1,unit:0,p1:1,p2:1,p3:1});save();r();});
+  // lixeira sincronizada
+  document.querySelectorAll("[data-trash-restore]").forEach(b=>b.onclick=()=>trashRestore(b.dataset.trashRestore));
+  document.querySelectorAll("[data-trash-purge]").forEach(b=>b.onclick=()=>{if(confirm("Excluir definitivamente? Não poderá mais ser restaurado."))trashPurge(b.dataset.trashPurge);});
+  A("[data-trash-empty]",()=>{
+    if(!confirm("Esvaziar a lixeira? Nenhum item poderá mais ser restaurado."))return;
+    (S.trash||[]).forEach(t=>{if(!t.restored&&!t.purged){t.purged=true;t.ts=Date.now();delete t.obj;}});
+    save();r();
+  });
   // sincronização Google Drive
   const scEl=document.getElementById("sync_client");
   if(scEl)scEl.onchange=()=>{SYNC.clientId=scEl.value.trim();SYNC.fileId="";syncSaveCfg();r();};
@@ -3701,8 +3900,8 @@ function bind(){
       flatpickr(el,{mode:"range",dateFormat:"Y-m-d",allowInput:false});
     });
   }
-  document.querySelectorAll("[data-delx]").forEach(b=>b.onclick=()=>{pushUndo("Atividade");S.ativ=S.ativ.filter(a=>a.id!==b.dataset.delx);save();r();});
-  document.querySelectorAll("[data-deletapa]").forEach(b=>b.onclick=()=>{const et=b.dataset.deletapa;const inEt=a=>a.projeto===S.proj&&CATN[a.n]&&CATN[a.n].et===et;const lst=S.ativ.filter(inEt);const bl=lst.length?blocoOf(lst[0].n):et;pushUndo("Etapa "+bl);S.ativ=S.ativ.filter(a=>!inEt(a));save();r();});
+  document.querySelectorAll("[data-delx]").forEach(b=>b.onclick=()=>{pushUndo("Atividade");const _a=S.ativ.find(a=>a.id===b.dataset.delx);if(_a)toTrash("ativ",_a);S.ativ=S.ativ.filter(a=>a.id!==b.dataset.delx);save();r();});
+  document.querySelectorAll("[data-deletapa]").forEach(b=>b.onclick=()=>{const et=b.dataset.deletapa;const inEt=a=>a.projeto===S.proj&&CATN[a.n]&&CATN[a.n].et===et;const lst=S.ativ.filter(inEt);const bl=lst.length?blocoOf(lst[0].n):et;pushUndo("Etapa "+bl);lst.forEach(a=>toTrash("ativ",a));S.ativ=S.ativ.filter(a=>!inEt(a));save();r();});
   document.querySelectorAll("[data-pessoa]").forEach(b=>b.onclick=()=>{const e=S.equipe.find(x=>x.id==b.dataset.pessoa);S.modal={t:"pessoa",d:{...e}};r();});
 
   // LOGIN
@@ -3780,13 +3979,14 @@ function bind(){
     save();if(f==="status")r();
   });
   document.querySelectorAll("[data-esp-del]").forEach(b=>b.onclick=()=>{
+    const _x=S.espec.find(x=>x.id===b.dataset.espDel);if(_x)toTrash("espec",_x,(_x.elemento||_x.item||"Item")+" — "+(_x.projeto||""));
     S.espec=S.espec.filter(x=>x.id!==b.dataset.espDel);save();r();
   });
   const _rfin=document.getElementById("rdo_fotos");if(_rfin)_rfin.onchange=()=>{rdoCapture();rdoAddFotos(_rfin.files);};
   document.querySelectorAll("[data-rdo-delfoto]").forEach(b=>b.onclick=()=>{rdoCapture();(S.modal.d.fotos||[]).splice(+b.dataset.rdoDelfoto,1);r();});
   const _rpdf=document.querySelector("[data-rdo-pdf]");if(_rpdf)_rpdf.onclick=()=>{rdoCapture();genRDO(S.modal.d);};
   const _srdo=document.querySelector("[data-save-rdo]");if(_srdo)_srdo.onclick=()=>{rdoCapture();const d=S.modal.d;if(!d.projeto){alert("Selecione a obra/projeto.");return;}if(!d.data){alert("Informe a data.");return;}const id=_srdo.dataset.saveRdo;if(id&&id!=="0"){S.rdos=S.rdos.map(z=>z.id===id?{...d,id}:z);}else{S.rdos.push({...d,id:uid(),criadoEm:Date.now()});}S.modal=null;save();r();};
-  document.querySelectorAll("[data-del-rdo]").forEach(b=>b.onclick=()=>{if(!confirm("Excluir este RDO?"))return;S.rdos=S.rdos.filter(z=>z.id!==b.dataset.delRdo);S.modal=null;save();r();});
+  document.querySelectorAll("[data-del-rdo]").forEach(b=>b.onclick=()=>{if(!confirm("Excluir este RDO?"))return;const _z=S.rdos.find(z=>z.id===b.dataset.delRdo);if(_z)toTrash("rdos",_z,(_z.projeto||"RDO")+" "+(_z.data||""));S.rdos=S.rdos.filter(z=>z.id!==b.dataset.delRdo);S.modal=null;save();r();});
   A("[data-act='import']",()=>document.getElementById("fileIn").click());
   A("[data-act='togglecards']",()=>{S.cardsExpanded=!S.cardsExpanded;r();});
 
@@ -3840,9 +4040,9 @@ function bind(){
   const spe=document.querySelector("[data-savepessoa]");if(spe)spe.onclick=()=>{const id=spe.dataset.savepessoa;const o={pessoa:val("m_pessoa"),funcao:val("m_funcao"),hd:+val("m_hd")||0,ds:+val("m_ds")||0,isDiretor:document.getElementById("m_isdir")?.checked||false};if(!o.pessoa)return;
     if(id!=="0"){S.equipe=S.equipe.map(e=>e.id===id?{...o,id}:e);}else{S.equipe.push({...o,id:uid()});}S.modal=null;save();r();};
 
-  const dp=document.querySelector("[data-delproj]");if(dp)dp.onclick=()=>{const nome=S.modal.d.nome;pushUndo("Projeto "+nome);S.projs=S.projs.filter(p=>p.id!==S.modal.d.id);S.ativ=S.ativ.filter(a=>a.projeto!==nome);S.modal=null;S.proj=null;S.tab="projetos";save();r();};
-  document.querySelectorAll("[data-delativ]").forEach(b=>b.onclick=()=>{pushUndo("Atividade");S.ativ=S.ativ.filter(a=>a.id!==b.dataset.delativ);S.modal=null;save();r();});
-  document.querySelectorAll("[data-delpessoa]").forEach(b=>b.onclick=()=>{S.equipe=S.equipe.filter(e=>e.id!==b.dataset.delpessoa);S.modal=null;save();r();});
+  const dp=document.querySelector("[data-delproj]");if(dp)dp.onclick=()=>{const nome=S.modal.d.nome;pushUndo("Projeto "+nome);const _pj=S.projs.find(p=>p.id===S.modal.d.id);if(_pj)toTrash("projs",_pj);S.ativ.filter(a=>a.projeto===nome).forEach(a=>toTrash("ativ",a,entOf(a.n)+" — "+nome));S.projs=S.projs.filter(p=>p.id!==S.modal.d.id);S.ativ=S.ativ.filter(a=>a.projeto!==nome);S.modal=null;S.proj=null;S.tab="projetos";save();r();};
+  document.querySelectorAll("[data-delativ]").forEach(b=>b.onclick=()=>{pushUndo("Atividade");const _a=S.ativ.find(a=>a.id===b.dataset.delativ);if(_a)toTrash("ativ",_a);S.ativ=S.ativ.filter(a=>a.id!==b.dataset.delativ);S.modal=null;save();r();});
+  document.querySelectorAll("[data-delpessoa]").forEach(b=>b.onclick=()=>{const _e=S.equipe.find(e=>e.id===b.dataset.delpessoa);if(_e)toTrash("equipe",_e,_e.pessoa);S.equipe=S.equipe.filter(e=>e.id!==b.dataset.delpessoa);S.modal=null;save();r();});
   document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{const id=b.dataset.edit;const a=S.ativ.find(x=>x.id===id);if(!a)return;S.modal={t:"ativ",d:{...a}};r();});
 
   const fi=document.getElementById("fileIn");if(fi)fi.onchange=e=>doImport(e);
@@ -3877,11 +4077,21 @@ r();
   if(sub){if(t==="financeiro")S.finTab=sub;if(t==="comercial")S.comTab=sub;}
   r();
 })();
-if(SYNC.clientId&&syncConectado())syncPull(false);
+// Sempre tenta puxar da nuvem ao abrir — mesmo com token expirado o gToken
+// tenta renovação silenciosa; antes, um aparelho parado >1h nunca atualizava
+// (mas conseguia ENVIAR dados velhos por cima dos novos — causa da dessincronização).
+if(SYNC.clientId)syncPull(false);
 // Puxa dados da nuvem ao voltar para a aba/janela — cobre o caso de dois
 // dispositivos abertos ao mesmo tempo (celular + PC), evitando tela "presa" no passado.
-document.addEventListener("visibilitychange",()=>{if(!document.hidden&&SYNC.clientId&&syncConectado())syncPull(false);});
-window.addEventListener("focus",()=>{if(SYNC.clientId&&syncConectado())syncPull(false);});
+let _lastFocusPull=0;
+function _focusPull(){
+  if(!SYNC.clientId)return;
+  if(Date.now()-_lastFocusPull<15000)return; // no máx. 1 vez a cada 15s
+  _lastFocusPull=Date.now();
+  syncPull(false);
+}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)_focusPull();});
+window.addEventListener("focus",_focusPull);
 </script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" onload="void 0"></script>
 </body>
