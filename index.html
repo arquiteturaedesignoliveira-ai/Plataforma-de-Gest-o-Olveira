@@ -3725,23 +3725,22 @@ ${vc?`<div class="page">
 }
 
 // ===== APRESENTAÇÃO DE ORÇAMENTO (slides 16:9) =====
+// Cores e tom seguem o Brand Book Oliveira: "A matéria se transforma. A essência permanece."
+// Paleta Origem — Terra #70503C · Vida/Sangue #A6533A (accent) · Ofício/Óleo #161514 (ink)
 const PAC_LABEL={P1:"Essencial",P2:"Completo",P3:"Premium"};
-function escopoPacote(o,pkUpper){
-  const pk=(pkUpper||"P2").toLowerCase();
-  const ets=new Set();
-  ORC_ENT.forEach(e=>{if(o?.esc?.[e.k]?.[pk])(ORC2BLOCO[e.k]||[]).forEach(et=>ets.add(et));});
-  const cats=CAT.filter(c=>ets.has(c.et));
-  return BLOCOS.map(b=>({b,it:cats.filter(c=>c.bloco===b)})).filter(g=>g.it.length);
-}
-function chunkGrupos(groups,maxPorSlide){
-  const slides=[];let cur=[],count=0;
-  groups.forEach(g=>{
-    if(count&&count+g.it.length>maxPorSlide){slides.push(cur);cur=[];count=0;}
-    cur.push(g);count+=g.it.length;
-  });
-  if(cur.length)slides.push(cur);
-  return slides;
-}
+const MANIFESTO_TAGLINE="A matéria se transforma. A essência permanece.";
+const JORNADA_TXT={
+  e01:"Começamos ouvindo a sua história — visitamos o espaço e entendemos como você vive, antes de desenhar qualquer linha.",
+  e02:"Transformamos essa história em um conceito só seu: o fio condutor que vai guiar cada decisão do projeto.",
+  e03:"Desenhamos como você vai se mover e viver em cada ambiente, antes de qualquer detalhe.",
+  e04:"Você vê o projeto ganhar forma, luz e materialidade com realismo — antes de sair do papel.",
+  e05:"Organizamos os números e o programa técnico para que a execução aconteça sem surpresas.",
+  e06:"Cuidamos da parte legal junto aos órgãos competentes, para que tudo saia do papel com segurança.",
+  e07:"Conferimos cada interferência entre as disciplinas antes da obra começar, evitando retrabalho.",
+  e08:"Detalhamos cada solução construtiva com a precisão que a execução exige.",
+  e09:"Cada ambiente ganha seu detalhamento completo — do piso ao acabamento, coerente com o conceito.",
+  e10:"Acompanhamos a obra de perto, ao seu lado, até a entrega final."
+};
 function apresentacaoModal(d){
   const p=(S.fin.propostas||[]).find(x=>x.id===d.id);
   if(!p)return "";
@@ -3750,7 +3749,7 @@ function apresentacaoModal(d){
   const matches=(S.portfolio||[]).filter(x=>x.tipologia===p.tipo);
   return `<div class="ov" data-close="1"><div class="modal" style="max-width:520px" data-stop="1">
   <div class="modal-title">Apresentação de orçamento — ${esc(p.cliente||"")}</div>
-  <div style="font-size:11px;color:var(--dim);margin-bottom:16px;line-height:1.6">Gera uma apresentação em slides (16:9) com capa, dados do cliente, portfólio de projetos da mesma tipologia, comparação dos 3 pacotes, escopo detalhado do pacote ${esc(PAC_LABEL[pk]||pk)} e condições de investimento. Abre em nova aba — apresente em tela cheia ou salve como PDF.</div>
+  <div style="font-size:11px;color:var(--dim);margin-bottom:16px;line-height:1.6">Gera uma apresentação em slides (16:9) na identidade da marca: posicionamento, portfólio, a jornada do projeto (sem lista técnica de entregáveis), pacotes e investimento. Abre em nova aba — apresente em tela cheia ou salve como PDF.</div>
   <div style="border:1px solid var(--line);padding:16px;background:var(--panel2);margin-bottom:16px">
     <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px">Pré-visualização</div>
     <div style="font-size:12px;font-weight:600;margin-bottom:4px">${esc(p.cliente||"NOME DO CLIENTE")}</div>
@@ -3774,31 +3773,61 @@ function abrirApresentacao(id){
 function apresentacaoSlidesHTML(p){
   const o=p.orc||{};
   const pkUpper=p.pacoteApres||"P2";
+  const pk=pkUpper.toLowerCase();
   const ambientes=o.ambientes||[];
   const areaTotal=ambientes.reduce((s,a)=>s+(+a.m2||0)*(+a.qtd||1),0);
   const n1=v=>(Math.round(v*10)/10).toLocaleString("pt-BR");
   const hoje=new Date();
   const matches=(S.portfolio||[]).filter(x=>x.tipologia===p.tipo).sort((a,b)=>(b.ano||"").localeCompare(a.ano||"")).slice(0,4);
-  const groupsPacote=escopoPacote(o,pkUpper);
-  const scopeSlides=groupsPacote.length?chunkGrupos(groupsPacote,13):[];
+  const jornada=ORC_ENT.filter(e=>o.esc?.[e.k]?.[pk]);
 
   const slides=[];
 
-  slides.push(`<div class="slide">
+  // 1. Capa — identidade da marca antes de qualquer número
+  slides.push(`<div class="slide slide-capa">
     <div class="accent-bar"></div>
-    <div class="label">Apresentação de Orçamento</div>
-    <div class="title">${esc(p.tipo||"Projeto")}</div>
-    <div class="divider"></div>
+    <div class="label">Proposta de Projeto</div>
+    <div class="title-serif">${esc(p.tipo||"Projeto")}</div>
     <div class="cliente-nome">${esc(p.cliente||"NOME DO CLIENTE")}</div>
-    <div class="sub">${fmtDate(hoje)} · Orçamento nº ${p.num||"—"}</div>
+    <div class="tagline">${MANIFESTO_TAGLINE}</div>
     <div class="footer">
       <div class="footer-info">arquiteturaedesign.oliveira@gmail.com · @arquiteto.oliveira · 34 99828 0635</div>
-      <div class="footer-info">Wallisson Oliveira · Arquitetura & Interiores</div>
+      <div class="footer-info">Wallisson Oliveira · Arquitetura &amp; Interiores</div>
     </div>
   </div>`);
 
+  // 2. Posicionamento — o valor e a relação, antes do processo
   slides.push(`<div class="slide">
-    <div class="sec">Sobre o Projeto</div>
+    <div class="sec">Como Trabalhamos</div>
+    <div class="manifesto-grande">Projeto completo — arquitetura e interiores como uma coisa só.</div>
+    <div class="manifesto-corpo">O espaço e o modo de habitá-lo nascem do mesmo conceito, não de duas contratações separadas. Cada projeto começa com a sua história — o seu jeito de morar — e não com um catálogo de referências prontas.</div>
+    <div class="divider"></div>
+    <div class="manifesto-quote">${MANIFESTO_TAGLINE}</div>
+    <div class="footer">
+      <div class="footer-info">${esc(p.cliente||"")} · ${fmtDate(hoje)}</div>
+      <div class="footer-info">Wallisson Oliveira · Arquitetura &amp; Interiores</div>
+    </div>
+  </div>`);
+
+  // 3. Portfólio — prova visual, logo após o posicionamento
+  if(matches.length)slides.push(`<div class="slide">
+    <div class="sec">Histórias que já viraram projeto</div>
+    <div style="display:grid;grid-template-columns:repeat(${Math.min(matches.length,2)},1fr);gap:28px;margin-top:18px">
+      ${matches.map(x=>`<div>
+        <div style="height:230px;background:${x.capa?`url('${x.capa}') center/cover no-repeat`:"var(--line)"};margin-bottom:12px"></div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:3px">${esc(x.nome||"")}</div>
+        <div style="font-size:10px;color:var(--dim)">${esc([x.local,x.m2?x.m2+" m²":"",x.ano].filter(Boolean).join(" · "))}</div>
+      </div>`).join("")}
+    </div>
+    <div class="footer">
+      <div class="footer-info">${esc(p.cliente||"")} · ${fmtDate(hoje)}</div>
+      <div class="footer-info">Portfólio · ${esc(p.tipo||"")}</div>
+    </div>
+  </div>`);
+
+  // 4. O seu projeto — mostra que ouvimos a história do cliente
+  slides.push(`<div class="slide">
+    <div class="sec">O Seu Projeto</div>
     <div class="grid2">
       <div>
         <div class="dado-label">Cliente</div><div class="dado-val">${esc(p.cliente||"—")}</div>
@@ -3808,7 +3837,7 @@ function apresentacaoSlidesHTML(p){
       </div>
       <div>
         <div class="dado-label" style="margin-bottom:8px">Programa de necessidades</div>
-        ${ambientes.length?ambientes.map(a=>`<div class="escopo-item"><div class="escopo-dot"></div><div>${esc(a.amb)}${(+a.qtd||1)>1?" ×"+a.qtd:""}${a.m2?" — "+a.m2+" m²":""}</div></div>`).join(""):`<div style="font-size:12px;color:#7C746E">A definir</div>`}
+        ${ambientes.length?ambientes.map(a=>`<div class="escopo-item"><div class="escopo-dot"></div><div>${esc(a.amb)}${(+a.qtd||1)>1?" ×"+a.qtd:""}${a.m2?" — "+a.m2+" m²":""}</div></div>`).join(""):`<div style="font-size:12px;color:var(--dim)">A definir</div>`}
       </div>
     </div>
     <div class="footer">
@@ -3817,38 +3846,42 @@ function apresentacaoSlidesHTML(p){
     </div>
   </div>`);
 
-  if(matches.length)slides.push(`<div class="slide">
-    <div class="sec">Projetos Semelhantes</div>
-    <div style="display:grid;grid-template-columns:repeat(${Math.min(matches.length,2)},1fr);gap:24px;margin-top:14px">
-      ${matches.map(x=>`<div>
-        <div style="height:190px;background:${x.capa?`url('${x.capa}') center/cover no-repeat`:"#EDE8DF"};margin-bottom:10px"></div>
-        <div style="font-size:14px;font-weight:600;margin-bottom:3px">${esc(x.nome||"")}</div>
-        <div style="font-size:10px;color:#7C746E">${esc([x.local,x.m2?x.m2+" m²":"",x.ano].filter(Boolean).join(" · "))}</div>
+  // 5. A jornada — a experiência de trabalhar juntos, não uma lista de entregáveis
+  if(jornada.length)slides.push(`<div class="slide">
+    <div class="sec">A Jornada do Seu Projeto</div>
+    <div class="jornada">
+      ${jornada.map((e,i)=>`<div class="jornada-item">
+        <div class="jornada-num">${String(i+1).padStart(2,"0")}</div>
+        <div>
+          <div class="jornada-titulo">${esc(e.nome.replace(/^\d+\s*/,""))}</div>
+          <div class="jornada-txt">${esc(JORNADA_TXT[e.k]||"")}</div>
+        </div>
       </div>`).join("")}
     </div>
     <div class="footer">
       <div class="footer-info">${esc(p.cliente||"")} · ${fmtDate(hoje)}</div>
-      <div class="footer-info">Portfólio · ${esc(p.tipo||"")}</div>
+      <div class="footer-info">Pacote ${esc(PAC_LABEL[pkUpper]||pkUpper)}</div>
     </div>
   </div>`);
 
+  // 6. Pacotes
   slides.push(`<div class="slide">
-    <div class="sec">Os Pacotes</div>
+    <div class="sec">Como Você Quer Viver Esse Projeto</div>
     <table style="width:100%;border-collapse:collapse;margin-top:8px">
       <thead><tr>
-        <th style="text-align:left;padding:8px 10px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#7C746E;border-bottom:2px solid #1C1917">Escopo</th>
-        ${["P1","P2","P3"].map(pkx=>`<th style="text-align:center;padding:8px 10px;border-bottom:2px solid #1C1917;${pkx===pkUpper?"background:rgba(184,149,106,.10)":""}">
-          <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;font-weight:700;color:${pkx===pkUpper?"#B8956A":"#1C1917"}">${pkx===pkUpper?"★ ":""}${PAC_LABEL[pkx]}</div>
+        <th style="text-align:left;padding:8px 10px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);border-bottom:2px solid var(--ink)">Etapa</th>
+        ${["P1","P2","P3"].map(pkx=>`<th style="text-align:center;padding:8px 10px;border-bottom:2px solid var(--ink);${pkx===pkUpper?"background:rgba(166,83,58,.08)":""}">
+          <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;font-weight:700;color:${pkx===pkUpper?"var(--accent)":"var(--ink)"}">${pkx===pkUpper?"★ ":""}${PAC_LABEL[pkx]}</div>
         </th>`).join("")}
       </tr></thead>
       <tbody>
         ${ORC_ENT.map(e=>`<tr>
-          <td style="text-align:left;padding:6px 10px;font-size:11.5px;border-bottom:1px solid #EDE8DF">${esc(e.nome)}</td>
-          ${["P1","P2","P3"].map(pkx=>`<td style="text-align:center;padding:6px 10px;border-bottom:1px solid #EDE8DF;${pkx===pkUpper?"background:rgba(184,149,106,.06)":""}">${o.esc?.[e.k]?.[pkx.toLowerCase()]?'<span style="color:#4C7A3C;font-weight:700">✓</span>':'<span style="color:#D8D2C8">—</span>'}</td>`).join("")}
+          <td style="text-align:left;padding:6px 10px;font-size:11.5px;border-bottom:1px solid var(--line)">${esc(e.nome)}</td>
+          ${["P1","P2","P3"].map(pkx=>`<td style="text-align:center;padding:6px 10px;border-bottom:1px solid var(--line);${pkx===pkUpper?"background:rgba(166,83,58,.05)":""}">${o.esc?.[e.k]?.[pkx.toLowerCase()]?'<span style="color:var(--accent);font-weight:700">✓</span>':'<span style="color:var(--line)">—</span>'}</td>`).join("")}
         </tr>`).join("")}
         <tr>
-          <td style="padding:12px 10px;font-size:12px;font-weight:700;border-top:2px solid #1C1917">Investimento</td>
-          ${["P1","P2","P3"].map(pkx=>`<td style="text-align:center;padding:12px 10px;border-top:2px solid #1C1917;font-size:14px;font-weight:700;${pkx===pkUpper?"color:#B8956A":""}">${fmtBRL(+(p["valor"+pkx]||0))}</td>`).join("")}
+          <td style="padding:12px 10px;font-size:12px;font-weight:700;border-top:2px solid var(--ink)">Investimento</td>
+          ${["P1","P2","P3"].map(pkx=>`<td style="text-align:center;padding:12px 10px;border-top:2px solid var(--ink);font-size:14px;font-weight:700;${pkx===pkUpper?"color:var(--accent)":""}">${fmtBRL(+(p["valor"+pkx]||0))}</td>`).join("")}
         </tr>
       </tbody>
     </table>
@@ -3858,15 +3891,7 @@ function apresentacaoSlidesHTML(p){
     </div>
   </div>`);
 
-  scopeSlides.forEach((chunk,i)=>slides.push(`<div class="slide">
-    <div class="sec">O Escopo — Pacote ${esc(PAC_LABEL[pkUpper]||pkUpper)}${scopeSlides.length>1?" ("+(i+1)+"/"+scopeSlides.length+")":""}</div>
-    ${chunk.map(g=>`<div class="bloco-title">${esc(g.b)}</div>${g.it.map(c=>`<div class="escopo-item"><div class="escopo-dot"></div><div>${esc(c.ent)}</div></div>`).join("")}`).join("")}
-    <div class="footer">
-      <div class="footer-info">${esc(p.cliente||"")} · ${fmtDate(hoje)}</div>
-      <div class="footer-info">Proposta válida por ${esc(o.cliente?.validade||"15 dias")}</div>
-    </div>
-  </div>`));
-
+  // 7. Investimento e próximos passos — fecha com a mesma frase da capa
   slides.push(`<div class="slide">
     <div class="sec">O Investimento</div>
     <div class="valor-box">
@@ -3881,7 +3906,7 @@ function apresentacaoSlidesHTML(p){
       <div class="escopo-item"><div class="escopo-dot"></div><div><strong>Cartão de crédito</strong> — acréscimo de 5% sobre o valor total</div></div>
     </div>
     <div class="divider"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:20px">
       <div>
         <div class="sec">Está incluso</div>
         <div class="escopo-item"><div class="escopo-dot"></div><div>R.R.T. (Registro de Responsabilidade Técnica)</div></div>
@@ -3897,37 +3922,48 @@ function apresentacaoSlidesHTML(p){
         <div class="escopo-item"><div class="escopo-dot"></div><div>Taxas de aprovação em órgãos municipais/estaduais</div></div>
       </div>
     </div>
+    <div class="manifesto-quote" style="text-align:center">${MANIFESTO_TAGLINE}</div>
     <div class="footer">
       <div class="footer-info">arquiteturaedesign.oliveira@gmail.com · @arquiteto.oliveira</div>
-      <div class="footer-info" style="color:#B8956A">Proposta válida por ${esc(o.cliente?.validade||"15 dias")} · ${fmtDate(hoje)}</div>
+      <div class="footer-info" style="color:var(--accent)">Proposta válida por ${esc(o.cliente?.validade||"15 dias")} · ${fmtDate(hoje)}</div>
     </div>
   </div>`);
 
   return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"/><title>Apresentação — ${esc(p.cliente||"")}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400;1,500&family=Montserrat:wght@300;400;500;600;700&display=swap" media="print" onload="this.media='all'"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
+:root{--ink:#161514;--terra:#70503C;--accent:#A6533A;--dim:#917563;--line:#E3DDD6;--bg:#FEFCFA;}
 html,body{background:#2b2926;}
-body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#1C1917;font-size:14px;line-height:1.6;padding:24px 0 70px;}
-.slide{width:1280px;height:720px;background:#fff;padding:56px 76px;position:relative;overflow:hidden;margin:0 auto 24px;display:none;}
+body{font-family:'Montserrat',Helvetica,Arial,sans-serif;color:var(--ink);font-size:14px;line-height:1.6;padding:24px 0 70px;}
+.slide{width:1280px;height:720px;background:var(--bg);padding:56px 76px;position:relative;overflow:hidden;margin:0 auto 24px;display:none;}
 .slide.active{display:block;}
-.label{font-size:10px;letter-spacing:4px;text-transform:uppercase;color:#7C746E;margin-bottom:8px;font-weight:600;}
-.title{font-size:34px;font-weight:300;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;}
-.cliente-nome{font-size:40px;font-weight:300;letter-spacing:1px;margin-top:34px;margin-bottom:8px;}
-.sub{font-size:13px;color:#7C746E;}
-.divider{height:1px;background:#D5CFC5;margin:18px 0;}
-.accent-bar{height:4px;background:#B8956A;width:56px;margin-bottom:20px;}
-.sec{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#B8956A;font-weight:700;margin-bottom:18px;padding-bottom:8px;border-bottom:1px solid #D5CFC5;}
+.label{font-size:10px;letter-spacing:4px;text-transform:uppercase;color:var(--dim);margin-bottom:10px;font-weight:600;}
+.title-serif{font-family:'Playfair Display',Georgia,'Times New Roman',serif;font-size:40px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
+.cliente-nome{font-family:'Playfair Display',Georgia,'Times New Roman',serif;font-size:26px;font-weight:400;font-style:italic;color:var(--terra);margin-top:26px;margin-bottom:22px;}
+.tagline{font-family:'Playfair Display',Georgia,'Times New Roman',serif;font-size:17px;font-style:italic;color:var(--accent);margin-top:10px;}
+.slide-capa .footer{border-top-color:var(--line);}
+.divider{height:1px;background:var(--line);margin:18px 0;}
+.accent-bar{height:4px;background:var(--accent);width:56px;margin-bottom:24px;}
+.sec{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:18px;padding-bottom:8px;border-bottom:1px solid var(--line);}
+.manifesto-grande{font-family:'Playfair Display',Georgia,'Times New Roman',serif;font-size:28px;font-weight:600;line-height:1.35;max-width:900px;margin-bottom:20px;}
+.manifesto-corpo{font-size:14px;color:var(--ink);line-height:1.75;max-width:800px;}
+.manifesto-quote{font-family:'Playfair Display',Georgia,'Times New Roman',serif;font-size:19px;font-style:italic;color:var(--accent);margin-top:16px;}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
-.dado-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#7C746E;margin-bottom:3px;}
+.dado-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:3px;}
 .dado-val{font-size:14px;font-weight:500;}
-.escopo-item{display:flex;align-items:flex-start;gap:9px;padding:5px 0;border-bottom:1px solid #EDE8DF;font-size:12px;}
-.escopo-dot{width:5px;height:5px;background:#B8956A;flex-shrink:0;margin-top:6px;}
-.bloco-title{font-size:9px;letter-spacing:2.5px;text-transform:uppercase;font-weight:700;color:#1C1917;padding:10px 0 4px;margin-top:8px;}
-.valor-box{border-top:3px solid #B8956A;padding:26px;text-align:center;margin:20px 0;}
-.valor-num{font-size:40px;font-weight:300;letter-spacing:1px;color:#1C1917;}
-.footer{position:absolute;bottom:30px;left:76px;right:76px;display:flex;justify-content:space-between;align-items:flex-end;border-top:1px solid #D5CFC5;padding-top:10px;}
-.footer-info{font-size:9px;color:#7C746E;letter-spacing:.5px;}
-.toolbar{position:fixed;bottom:0;left:0;right:0;background:#1C1917;color:#fff;display:flex;align-items:center;justify-content:center;gap:16px;padding:12px;font-family:Arial,Helvetica,sans-serif;font-size:12px;z-index:10;}
+.escopo-item{display:flex;align-items:flex-start;gap:9px;padding:5px 0;border-bottom:1px solid var(--line);font-size:12px;}
+.escopo-dot{width:5px;height:5px;background:var(--accent);flex-shrink:0;margin-top:6px;}
+.jornada-item{display:flex;gap:18px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line);}
+.jornada-num{width:34px;flex-shrink:0;font-family:'Playfair Display',Georgia,'Times New Roman',serif;font-size:16px;color:var(--accent);font-weight:600;}
+.jornada-titulo{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;}
+.jornada-txt{font-size:11px;color:var(--dim);line-height:1.4;}
+.valor-box{border-top:3px solid var(--accent);padding:26px;text-align:center;margin:20px 0;}
+.valor-num{font-family:'Playfair Display',Georgia,'Times New Roman',serif;font-size:42px;font-weight:600;letter-spacing:1px;color:var(--ink);}
+.footer{position:absolute;bottom:30px;left:76px;right:76px;display:flex;justify-content:space-between;align-items:flex-end;border-top:1px solid var(--line);padding-top:10px;}
+.footer-info{font-size:9px;color:var(--dim);letter-spacing:.5px;}
+.toolbar{position:fixed;bottom:0;left:0;right:0;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;gap:16px;padding:12px;font-family:Arial,Helvetica,sans-serif;font-size:12px;z-index:10;}
 .toolbar button{cursor:pointer;font-family:inherit;}
 @media print{
   @page{size:landscape;margin:0;}
@@ -3942,7 +3978,7 @@ ${slides.join("\n")}
   <button id="nav-prev" style="background:none;border:1px solid #585857;color:#fff;padding:7px 16px">← Anterior</button>
   <span id="slide-counter">1 / ${slides.length}</span>
   <button id="nav-next" style="background:none;border:1px solid #585857;color:#fff;padding:7px 16px">Próximo →</button>
-  <button id="nav-print" style="background:#B8956A;border:none;color:#fff;padding:7px 16px;margin-left:20px">Imprimir / Salvar PDF</button>
+  <button id="nav-print" style="background:#A6533A;border:none;color:#fff;padding:7px 16px;margin-left:20px">Imprimir / Salvar PDF</button>
 </div>
 <script>
 (function(){
