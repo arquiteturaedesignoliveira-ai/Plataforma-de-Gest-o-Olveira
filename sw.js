@@ -4,7 +4,7 @@
    - CDNs (fontes, flatpickr): cache-first com runtime cache (2ª vez abre offline)
    - Google (identity/drive/apis): NUNCA cacheia — precisa de rede, não pode servir stale
    Ao publicar uma nova versão do sistema, suba o número em CACHE. */
-const CACHE = "oliveira-v1";
+const CACHE = "oliveira-v2";
 const APP_SHELL = [
   "./",
   "./index.html",
