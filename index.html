@@ -3729,17 +3729,18 @@ ${vc?`<div class="page">
 // Paleta Origem — Terra #70503C · Vida/Sangue #A6533A (accent) · Ofício/Óleo #161514 (ink)
 const PAC_LABEL={P1:"Essencial",P2:"Completo",P3:"Premium"};
 const MANIFESTO_TAGLINE="A matéria se transforma. A essência permanece.";
+// p = pergunta decisiva do cliente naquela etapa (quando existe um marco de decisão); r = resposta resumida
 const JORNADA_TXT={
-  e01:"Começamos ouvindo a sua história — visitamos o espaço e entendemos como você vive, antes de desenhar qualquer linha.",
-  e02:"Transformamos essa história em um conceito só seu: o fio condutor que vai guiar cada decisão do projeto.",
-  e03:"Desenhamos como você vai se mover e viver em cada ambiente, antes de qualquer detalhe.",
-  e04:"Você vê o projeto ganhar forma, luz e materialidade com realismo — antes de sair do papel.",
-  e05:"Organizamos os números e o programa técnico para que a execução aconteça sem surpresas.",
-  e06:"Cuidamos da parte legal junto aos órgãos competentes, para que tudo saia do papel com segurança.",
-  e07:"Conferimos cada interferência entre as disciplinas antes da obra começar, evitando retrabalho.",
-  e08:"Detalhamos cada solução construtiva com a precisão que a execução exige.",
-  e09:"Cada ambiente ganha seu detalhamento completo — do piso ao acabamento, coerente com o conceito.",
-  e10:"Acompanhamos a obra de perto, ao seu lado, até a entrega final."
+  e01:{p:null,r:"Compreendemos o espaço, as pessoas e os objetivos — é na imersão nas pessoas (rotina, forma de viver, expectativas futuras) que o projeto encontra significado."},
+  e02:{p:"Esta é a direção que queremos seguir?",r:"Definimos a identidade do projeto — conceito, narrativa e atmosfera — que vai guiar todas as decisões seguintes."},
+  e03:{p:"Esta organização atende nossa forma de viver?",r:"Traduzimos como vocês vivem em uma organização espacial concreta: setorização, fluxos e uso dos ambientes."},
+  e04:{p:"Esta é a atmosfera, identidade e linguagem que desejamos?",r:"Da linguagem e materialidade à consolidação final — depois deste marco, o criativo não se reabre, protegendo vocês de retrabalho."},
+  e05:{p:"Podemos seguir com segurança técnica e financeira?",r:"Organizamos os números e o programa técnico antes da execução, para que não haja surpresas."},
+  e06:{p:null,r:"Cuidamos da aprovação legal junto aos órgãos competentes, para que tudo saia do papel com segurança."},
+  e07:{p:null,r:"Conferimos cada interferência entre as disciplinas antes da obra começar, evitando retrabalho."},
+  e08:{p:null,r:"Detalhamos cada solução construtiva com a precisão que a execução exige."},
+  e09:{p:null,r:"Documentamos cada ambiente para execução — marcenaria, marmoraria, revestimentos e iluminação."},
+  e10:{p:null,r:"Garantimos a fidelidade entre o projeto e a obra construída, até a entrega e o as built."}
 };
 function apresentacaoModal(d){
   const p=(S.fin.propostas||[]).find(x=>x.id===d.id);
@@ -3848,15 +3849,16 @@ function apresentacaoSlidesHTML(p){
 
   // 5. A jornada — a experiência de trabalhar juntos, não uma lista de entregáveis
   if(jornada.length)slides.push(`<div class="slide">
-    <div class="sec">A Jornada do Seu Projeto</div>
+    <div class="sec" style="margin-bottom:10px">A Jornada do Seu Projeto</div>
     <div class="jornada">
-      ${jornada.map((e,i)=>`<div class="jornada-item">
+      ${jornada.map((e,i)=>{const j=JORNADA_TXT[e.k]||{};return `<div class="jornada-item">
         <div class="jornada-num">${String(i+1).padStart(2,"0")}</div>
         <div>
           <div class="jornada-titulo">${esc(e.nome.replace(/^\d+\s*/,""))}</div>
-          <div class="jornada-txt">${esc(JORNADA_TXT[e.k]||"")}</div>
+          ${j.p?`<div class="jornada-pergunta">"${esc(j.p)}"</div>`:""}
+          <div class="jornada-txt">${esc(j.r||"")}</div>
         </div>
-      </div>`).join("")}
+      </div>`;}).join("")}
     </div>
     <div class="footer">
       <div class="footer-info">${esc(p.cliente||"")} · ${fmtDate(hoje)}</div>
@@ -3955,10 +3957,12 @@ body{font-family:'Montserrat',Helvetica,Arial,sans-serif;color:var(--ink);font-s
 .dado-val{font-size:14px;font-weight:500;}
 .escopo-item{display:flex;align-items:flex-start;gap:9px;padding:5px 0;border-bottom:1px solid var(--line);font-size:12px;}
 .escopo-dot{width:5px;height:5px;background:var(--accent);flex-shrink:0;margin-top:6px;}
-.jornada-item{display:flex;gap:18px;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line);}
-.jornada-num{width:34px;flex-shrink:0;font-family:'Playfair Display',Georgia,'Times New Roman',serif;font-size:16px;color:var(--accent);font-weight:600;}
-.jornada-titulo{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;}
-.jornada-txt{font-size:11px;color:var(--dim);line-height:1.4;}
+.jornada{font-size:0;}
+.jornada-item{display:flex;gap:14px;align-items:baseline;padding:3px 0;border-bottom:1px solid var(--line);}
+.jornada-num{width:28px;flex-shrink:0;font-family:'Playfair Display',Georgia,'Times New Roman',serif;font-size:14px;color:var(--accent);font-weight:600;}
+.jornada-titulo{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:1px;}
+.jornada-pergunta{font-family:'Playfair Display',Georgia,'Times New Roman',serif;font-size:11px;font-style:italic;color:var(--accent);margin-bottom:1px;line-height:1.25;}
+.jornada-txt{font-size:9.5px;color:var(--dim);line-height:1.3;}
 .valor-box{border-top:3px solid var(--accent);padding:26px;text-align:center;margin:20px 0;}
 .valor-num{font-family:'Playfair Display',Georgia,'Times New Roman',serif;font-size:42px;font-weight:600;letter-spacing:1px;color:var(--ink);}
 .footer{position:absolute;bottom:30px;left:76px;right:76px;display:flex;justify-content:space-between;align-items:flex-end;border-top:1px solid var(--line);padding-top:10px;}
