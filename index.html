@@ -314,6 +314,57 @@ input,select{font-family:inherit;font-size:14px;}
 @media(min-width:601px){
   .cards-bar-item.mob-only{display:none;}
 }
+
+/* ===== PASSEIO VIRTUAL 360 ===== */
+#tour360{position:fixed;inset:0;z-index:9999;background:#0b0a0a;opacity:0;transition:opacity .35s ease;touch-action:none;overflow:hidden;font-family:'Montserrat',Helvetica,Arial,sans-serif;}
+#tour360.on{opacity:1;}
+#tour360 canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;}
+#tour360 canvas.grabbing{cursor:grabbing;}
+#tour360 .t-fade{position:absolute;inset:0;background:#0b0a0a;opacity:0;pointer-events:none;transition:opacity .5s ease;z-index:5;}
+#tour360 .t-fade.show{opacity:1;}
+#tour360 .t-load{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:6;display:flex;flex-direction:column;align-items:center;gap:14px;pointer-events:none;opacity:0;transition:opacity .25s;}
+#tour360 .t-load.show{opacity:1;}
+#tour360 .t-spin{width:46px;height:46px;border:3px solid rgba(255,255,255,.18);border-top-color:var(--accent2);border-radius:50%;animation:tspin .9s linear infinite;}
+@keyframes tspin{to{transform:rotate(360deg);}}
+#tour360 .t-load-txt{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#e8ddd6;font-weight:600;}
+/* top bar */
+#tour360 .t-top{position:absolute;top:0;left:0;right:0;z-index:8;display:flex;align-items:flex-start;justify-content:space-between;padding:16px 18px;gap:12px;background:linear-gradient(180deg,rgba(0,0,0,.6),transparent);pointer-events:none;}
+#tour360 .t-top>*{pointer-events:auto;}
+#tour360 .t-titlebox{color:#fff;}
+#tour360 .t-eyebrow{font-size:9px;letter-spacing:4px;text-transform:uppercase;color:var(--accent2);font-weight:700;margin-bottom:5px;}
+#tour360 .t-title{font-size:21px;font-weight:600;letter-spacing:1px;line-height:1;text-shadow:0 2px 12px rgba(0,0,0,.6);}
+#tour360 .t-sub{font-size:10px;color:#c9bcb2;margin-top:6px;letter-spacing:.5px;}
+#tour360 .t-tools{display:flex;gap:8px;}
+#tour360 .t-btn{width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.22);background:rgba(20,18,17,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#f7f4f2;font-size:16px;display:flex;align-items:center;justify-content:center;transition:background .2s,border-color .2s,transform .1s;padding:0;line-height:1;}
+#tour360 .t-btn:hover{background:rgba(166,83,58,.6);border-color:var(--accent2);}
+#tour360 .t-btn:active{transform:scale(.92);}
+#tour360 .t-btn.act{background:var(--accent);border-color:var(--accent2);color:#fff;}
+#tour360 .t-btn.close:hover{background:rgba(201,77,49,.75);}
+/* hotspots */
+#tour360 .t-hs{position:absolute;z-index:7;transform:translate(-50%,-50%);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;will-change:left,top;transition:opacity .3s;}
+#tour360 .t-hs-dot{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.14);border:2px solid #fff;box-shadow:0 0 0 6px rgba(255,255,255,.08),0 4px 14px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;color:#fff;font-size:15px;animation:tpulse 2.4s ease-in-out infinite;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);}
+#tour360 .t-hs:hover .t-hs-dot{background:var(--accent2);border-color:#fff;transform:scale(1.12);}
+@keyframes tpulse{0%,100%{box-shadow:0 0 0 6px rgba(255,255,255,.08),0 4px 14px rgba(0,0,0,.4);}50%{box-shadow:0 0 0 12px rgba(255,255,255,.02),0 4px 14px rgba(0,0,0,.4);}}
+#tour360 .t-hs-lbl{font-size:10px;font-weight:600;letter-spacing:.5px;color:#fff;background:rgba(20,18,17,.72);padding:3px 9px;border-radius:20px;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.5);}
+/* bottom scene strip */
+#tour360 .t-strip{position:absolute;left:0;right:0;bottom:0;z-index:8;display:flex;gap:10px;padding:14px 16px 18px;overflow-x:auto;background:linear-gradient(0deg,rgba(0,0,0,.72),transparent);scrollbar-width:none;}
+#tour360 .t-strip::-webkit-scrollbar{display:none;}
+#tour360 .t-scene{flex:0 0 auto;width:118px;border-radius:10px;overflow:hidden;position:relative;cursor:pointer;border:2px solid transparent;background:#222;transition:border-color .2s,transform .15s;opacity:.78;}
+#tour360 .t-scene:hover{transform:translateY(-3px);opacity:1;}
+#tour360 .t-scene.on{border-color:var(--accent2);opacity:1;}
+#tour360 .t-scene img{width:100%;height:66px;object-fit:cover;display:block;}
+#tour360 .t-scene-nm{position:absolute;left:0;right:0;bottom:0;font-size:10px;font-weight:600;color:#fff;padding:14px 8px 5px;letter-spacing:.5px;background:linear-gradient(0deg,rgba(0,0,0,.85),transparent);}
+#tour360 .t-scene.on .t-scene-nm{color:var(--ciano);}
+/* hint */
+#tour360 .t-hint{position:absolute;left:50%;bottom:112px;transform:translateX(-50%);z-index:8;font-size:10px;letter-spacing:1px;color:#e8ddd6;background:rgba(20,18,17,.55);padding:7px 15px;border-radius:20px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);pointer-events:none;opacity:0;transition:opacity .5s;display:flex;align-items:center;gap:7px;}
+#tour360 .t-hint.show{opacity:1;}
+@media(max-width:600px){
+  #tour360 .t-title{font-size:16px;}
+  #tour360 .t-scene{width:96px;}
+  #tour360 .t-scene img{height:54px;}
+  #tour360 .t-btn{width:38px;height:38px;font-size:15px;}
+  #tour360 .t-hint{bottom:104px;}
+}
 </style>
 </head>
 <body>
@@ -322,7 +373,7 @@ input,select{font-family:inherit;font-size:14px;}
 <script>
 const CAT=[{"n":1,"at":"Agendar visita e levantamento","ent":"Cronograma da visita","et":"01","bloco":"01 Imersão","prod":"Interna","val":"Entrega","oper":true,"horas":2},{"n":2,"at":"Levantar o local (medir/fotografar)","ent":"Medidas, fotos, topografia","et":"01","bloco":"01 Imersão","prod":"Interna","val":"Entrega","oper":false,"horas":8},{"n":3,"at":"Transferir e organizar dados","ent":"Plantas existentes, fotográfico","et":"01","bloco":"01 Imersão","prod":"Interna","val":"Entrega","oper":false,"horas":4},{"n":4,"at":"Reunião de briefing","ent":"Programa de necessidades","et":"01","bloco":"01 Imersão","prod":"Interna","val":"Entrega","oper":true,"horas":3},{"n":5,"at":"Levantar planialtimétrico","ent":"Planialtimétrico do lote","et":"01","bloco":"01 Imersão","prod":"Interna","val":"Entrega","oper":false,"horas":6},{"n":6,"at":"Diagnóstico do existente","ent":"Demolir/construir, patologias","et":"01","bloco":"01 Imersão","prod":"Interna","val":"Entrega","oper":false,"horas":6},{"n":7,"at":"Consolidar diagnóstico","ent":"Resumo de diagnóstico","et":"01","bloco":"01 Imersão","prod":"Interna","val":"Entrega","oper":false,"horas":4},{"n":8,"at":"Pesquisa de conceito e referências","ent":"Pasta de referências","et":"02","bloco":"02 Conceito","prod":"Aprovação","val":"Marco Conceitual","oper":false,"horas":6},{"n":9,"at":"Montar moodboards","ent":"Moodboard ARQ e INT","et":"02","bloco":"02 Conceito","prod":"Aprovação","val":"Marco Conceitual","oper":false,"horas":8},{"n":10,"at":"Definir conceito e narrativa","ent":"Painel conceitual, partido","et":"02","bloco":"02 Conceito","prod":"Aprovação","val":"Marco Conceitual","oper":false,"horas":6},{"n":11,"at":"Montar apresentação do conceito","ent":"Apresentação de conceito","et":"02","bloco":"02 Conceito","prod":"Aprovação","val":"Marco Conceitual","oper":false,"horas":4},{"n":12,"at":"Marcar reunião e apresentar","ent":"Convite + reunião","et":"02","bloco":"02 Conceito","prod":"Aprovação","val":"Marco Conceitual","oper":true,"horas":2},{"n":13,"at":"Estudos de layout","ent":"Plantas de layout (xN pav)","et":"03","bloco":"03 Layout","prod":"Aprovação","val":"Marco Layout","oper":false,"horas":12},{"n":14,"at":"Estudo de implantação e massas","ent":"Implantação de estudo","et":"03","bloco":"03 Layout","prod":"Aprovação","val":"Marco Layout","oper":false,"horas":6},{"n":15,"at":"Diagramas de fluxo e setorização","ent":"Diagramas funcionais","et":"03","bloco":"03 Layout","prod":"Aprovação","val":"Marco Layout","oper":false,"horas":4},{"n":16,"at":"Montar apresentação do layout","ent":"Apresentação de layout","et":"03","bloco":"03 Layout","prod":"Aprovação","val":"Marco Layout","oper":false,"horas":4},{"n":17,"at":"Marcar reunião e apresentar","ent":"Convite + reunião","et":"03","bloco":"03 Layout","prod":"Aprovação","val":"Marco Layout","oper":true,"horas":2},{"n":18,"at":"Estudo volumétrico","ent":"Estudo volumétrico 3D","et":"04","bloco":"04 Volumetria e Materialidade","prod":"Aprovação","val":"Marco Linguagem","oper":false,"horas":12},{"n":19,"at":"Composição de fachadas (estudo)","ent":"Fachadas de estudo","et":"04","bloco":"04 Volumetria e Materialidade","prod":"Aprovação","val":"Marco Linguagem","oper":false,"horas":8},{"n":20,"at":"Modelagem 3D conceitual","ent":"3D conceitual ARQ e INT","et":"04","bloco":"04 Volumetria e Materialidade","prod":"Aprovação","val":"Marco Linguagem","oper":false,"horas":16},{"n":21,"at":"Estudo de materiais","ent":"Cartela de materiais","et":"04","bloco":"04 Volumetria e Materialidade","prod":"Aprovação","val":"Marco Linguagem","oper":false,"horas":6},{"n":22,"at":"Montar apresentação da linguagem","ent":"Apresentação de linguagem","et":"04","bloco":"04 Volumetria e Materialidade","prod":"Aprovação","val":"Marco Linguagem","oper":false,"horas":4},{"n":23,"at":"Marcar reunião e apresentar","ent":"Convite + reunião","et":"04","bloco":"04 Volumetria e Materialidade","prod":"Aprovação","val":"Marco Linguagem","oper":true,"horas":2},{"n":24,"at":"Consolidar modelo aprovado","ent":"Modelo completo","et":"05","bloco":"05 Projeto Desenvolvido","prod":"Aprovação","val":"Marco Final","oper":false,"horas":8},{"n":25,"at":"Plantas, cortes e fachadas dev.","ent":"Desenhos desenvolvidos","et":"05","bloco":"05 Projeto Desenvolvido","prod":"Aprovação","val":"Marco Final","oper":false,"horas":16},{"n":26,"at":"Imagens finais de apresentação","ent":"Renders, memorial","et":"05","bloco":"05 Projeto Desenvolvido","prod":"Aprovação","val":"Marco Final","oper":false,"horas":20},{"n":27,"at":"Montar apresentação final","ent":"Apresentação final","et":"05","bloco":"05 Projeto Desenvolvido","prod":"Aprovação","val":"Marco Final","oper":false,"horas":6},{"n":28,"at":"Marcar reunião e apresentar","ent":"Convite + reunião","et":"05","bloco":"05 Projeto Desenvolvido","prod":"Aprovação","val":"Marco Final","oper":true,"horas":2},{"n":29,"at":"Desenvolver pré-executivo ARQ","ent":"Pré-exec ARQ","et":"06","bloco":"06 Pré-Executivo e Viabilidade","prod":"Aprovação","val":"Marco Financeira","oper":false,"horas":16},{"n":30,"at":"Desenvolver pré-executivo INT","ent":"Pré-exec INT","et":"06","bloco":"06 Pré-Executivo e Viabilidade","prod":"Aprovação","val":"Marco Financeira","oper":false,"horas":16},{"n":31,"at":"Locação preliminar de pontos","ent":"Pontos elétr/hidr/ilum","et":"06","bloco":"06 Pré-Executivo e Viabilidade","prod":"Aprovação","val":"Marco Financeira","oper":false,"horas":8},{"n":32,"at":"Quadros de áreas e acabamentos","ent":"Quadros + quantitativo","et":"06","bloco":"06 Pré-Executivo e Viabilidade","prod":"Aprovação","val":"Marco Financeira","oper":false,"horas":8},{"n":33,"at":"Solicitar orçamentos","ent":"Pedidos a fornecedores","et":"06","bloco":"06 Pré-Executivo e Viabilidade","prod":"Aprovação","val":"Marco Financeira","oper":true,"horas":3},{"n":34,"at":"Reunião de viabilidade","ent":"Convite + reunião","et":"06","bloco":"06 Pré-Executivo e Viabilidade","prod":"Aprovação","val":"Marco Financeira","oper":true,"horas":2},{"n":35,"at":"Montar projeto de aprovação","ent":"Plantas/cortes/fachadas legais","et":"07","bloco":"07 Projeto Legal","prod":"Técnica","val":"Entrega","oper":false,"horas":12},{"n":36,"at":"Quadros e índices legais","ent":"Quadro de áreas, índices","et":"07","bloco":"07 Projeto Legal","prod":"Técnica","val":"Entrega","oper":false,"horas":4},{"n":37,"at":"Peças especiais (acessib/incêndio)","ent":"Peças conforme órgão","et":"07","bloco":"07 Projeto Legal","prod":"Técnica","val":"Entrega","oper":false,"horas":6},{"n":38,"at":"Protocolar no órgão","ent":"Protocolo","et":"07","bloco":"07 Projeto Legal","prod":"Técnica","val":"Entrega","oper":true,"horas":2},{"n":39,"at":"Acompanhar aprovação","ent":"Status/exigências","et":"07","bloco":"07 Projeto Legal","prod":"Técnica","val":"Entrega","oper":true,"horas":4},{"n":40,"at":"Compatibilizar ARQ x estrutura","ent":"Sobreposição estrutura","et":"08","bloco":"08 Compatibilização","prod":"Técnica","val":"Entrega","oper":false,"horas":6},{"n":41,"at":"Compatibilizar ARQ x instalações","ent":"Sobreposição instalações","et":"08","bloco":"08 Compatibilização","prod":"Técnica","val":"Entrega","oper":false,"horas":6},{"n":42,"at":"Cortes 3D de interferência","ent":"Cortes 3D","et":"08","bloco":"08 Compatibilização","prod":"Técnica","val":"Entrega","oper":false,"horas":6},{"n":43,"at":"Relatório de interferências","ent":"Relatório","et":"08","bloco":"08 Compatibilização","prod":"Técnica","val":"Entrega","oper":false,"horas":4},{"n":44,"at":"Plantas executivas","ent":"Plantas exec, paginação, forro","et":"09","bloco":"09 Executivo de Arquitetura","prod":"Técnica","val":"Entrega","oper":false,"horas":16},{"n":45,"at":"Cortes executivos","ent":"Cortes exec, setoriais","et":"09","bloco":"09 Executivo de Arquitetura","prod":"Técnica","val":"Entrega","oper":false,"horas":8},{"n":46,"at":"Fachadas executivas","ent":"Fachadas exec com cotas","et":"09","bloco":"09 Executivo de Arquitetura","prod":"Técnica","val":"Entrega","oper":false,"horas":6},{"n":47,"at":"Detalhes construtivos","ent":"Escada, impermeab., esquadrias","et":"09","bloco":"09 Executivo de Arquitetura","prod":"Técnica","val":"Entrega","oper":false,"horas":12},{"n":48,"at":"Quadro de esquadrias","ent":"Quadro + vistas-tipo","et":"09","bloco":"09 Executivo de Arquitetura","prod":"Técnica","val":"Entrega","oper":false,"horas":8},{"n":49,"at":"Plantas gerais INT","ent":"Layout, forro, luz, pontos, piso","et":"10","bloco":"10 Executivo de Interiores","prod":"Técnica","val":"Entrega","oper":false,"horas":12},{"n":50,"at":"Detalhar cada ambiente (xN)","ent":"Layout, elevações, marcenaria","et":"10","bloco":"10 Executivo de Interiores","prod":"Técnica","val":"Entrega","oper":false,"horas":24},{"n":51,"at":"Detalhar bancadas/marmoraria","ent":"Vistas, cortes, quadro pedras","et":"10","bloco":"10 Executivo de Interiores","prod":"Técnica","val":"Entrega","oper":false,"horas":8},{"n":52,"at":"Detalhar revestimentos","ent":"Paginação de parede","et":"10","bloco":"10 Executivo de Interiores","prod":"Técnica","val":"Entrega","oper":false,"horas":6},{"n":53,"at":"Detalhes e ampliações","ent":"Áreas molhadas, marcenaria esp.","et":"10","bloco":"10 Executivo de Interiores","prod":"Técnica","val":"Entrega","oper":false,"horas":8},{"n":54,"at":"Quadros consolidados INT","ent":"Acabamentos, luminárias, louças","et":"10","bloco":"10 Executivo de Interiores","prod":"Técnica","val":"Entrega","oper":false,"horas":6},{"n":55,"at":"Reunião de entrega","ent":"Arquivos finais, checklist","et":"11","bloco":"11 Suporte à Execução","prod":"Técnica","val":"Encerramento","oper":true,"horas":3},{"n":56,"at":"Visitas e esclarecimentos","ent":"Registros de visita","et":"11","bloco":"11 Suporte à Execução","prod":"Técnica","val":"Encerramento","oper":true,"horas":4},{"n":57,"at":"Revisões e detalhes de obra","ent":"Revisões ARQ e INT","et":"11","bloco":"11 Suporte à Execução","prod":"Técnica","val":"Encerramento","oper":false,"horas":8},{"n":58,"at":"As built","ent":"Plantas as built, alterações","et":"11","bloco":"11 Suporte à Execução","prod":"Técnica","val":"Encerramento","oper":false,"horas":8}];
 // Versão publicada — atualizar a cada deploy (aparece no cabeçalho ao lado do título)
-const OAD_VERSAO="v2026.07.20-1";
+const OAD_VERSAO="v2026.07.24-1";
 const CATN={};CAT.forEach(c=>CATN[c.n]=c);
 const BLOCOS=["01 Imersão","02 Conceito","03 Layout","04 Volumetria e Materialidade","05 Projeto Desenvolvido","06 Pré-Executivo e Viabilidade","07 Projeto Legal","08 Compatibilização","09 Executivo de Arquitetura","10 Executivo de Interiores","11 Suporte à Execução"];
 const BCOR={"01":"#057B9E","02":"#0BA2D9","03":"#2FF0D0","04":"#00B89C","05":"#8D1CD1","06":"#B24BE6","07":"#F39A00","08":"#F3B200","09":"#FFAE1A","10":"#C94D31","11":"#A6533A"};
@@ -1153,6 +1204,7 @@ function view(){
       <div class="user-chip">${esc(S.usuario.pessoa)}</div>
       <button class="btn-hd" data-act="logout">Sair</button>
       <button class="btn-hd" data-act="agentes" style="color:var(--accent2);border-color:var(--accent)">✦ Agentes</button>
+      <button class="btn-hd" data-act="tour360" style="color:var(--ciano);border-color:var(--green)">◐ Passeio 360</button>
       ${isDir?`<button class="btn-hd" data-act="import">Importar</button><button class="btn-hd" data-act="export">Exportar</button>`:""}
     </div>
   </div>
@@ -3961,6 +4013,7 @@ function bind(){
   A("[data-act='newpessoa']",()=>{S.modal={t:"pessoa",d:{pessoa:"",funcao:"",hd:6,ds:5}};r();});
   A("[data-act='export']",()=>doExport());
   A("[data-act='agentes']",()=>{S.modal={t:"agentes"};r();});
+  A("[data-act='tour360']",()=>openTour360());
   // ── RDO / Diário de Obra ──
   A("[data-act='newrdo']",()=>{S.modal={t:"rdo",d:{data:new Date().toISOString().slice(0,10),clima:"Bom",periodo:"Dia todo",autor:S.usuario?.pessoa||"",fotos:[]}};r();});
   document.querySelectorAll("[data-rdo-edit]").forEach(b=>b.onclick=()=>{const x=S.rdos.find(z=>z.id===b.dataset.rdoEdit);if(x){S.modal={t:"rdo",d:{...x,fotos:[...(x.fotos||[])]}};r();}});
@@ -4070,6 +4123,272 @@ function doImport(e){const f=e.target.files[0];if(!f||typeof XLSX==="undefined")
   if(wb.Sheets["PROJETOS"])S.projs=XLSX.utils.sheet_to_json(wb.Sheets["PROJETOS"]).map(x=>({id:uid(),nome:String(x.Projeto),cliente:String(x.Cliente||""),tipologia:String(x.Tipologia||TIPOS[0]),m2:+x.m2||0,padrao:String(x.Padrão||"Médio"),valorContratado:+x["Valor Contratado"]||0,status:String(x.Status||"Ativo")}));
   if(wb.Sheets["PLANEJAMENTO"])S.ativ=XLSX.utils.sheet_to_json(wb.Sheets["PLANEJAMENTO"]).filter(x=>x.Projeto&&x["#"]).map(x=>({id:uid(),projeto:String(x.Projeto),n:+x["#"],resp:String(x.Responsável||"Você"),horas:+x.Horas||0,ini:nm(x.Início),fim:nm(x.Fim),status:String(x.Status||"Planejada")}));
   save();r();};rd.readAsBinaryString(f);}
+
+/* =========================================================================
+   PASSEIO VIRTUAL 360 — visualizador equirectangular em WebGL (sem libs)
+   Renders 360° do projeto: navegação por hotspots + faixa de cenas.
+   ========================================================================= */
+const TOUR_SCENES=[
+  {id:"atelie",   nome:"Ateliê",     sub:"Cozinha · leitura · convívio", img:"tour360/atelie.jpg",     thumb:"tour360/thumb-atelie.jpg",     yaw:0.2,
+    hotspots:[{az:-28,el:-16,to:"oficina"},{az:34,el:-16,to:"studio"}]},
+  {id:"oficina",  nome:"Oficina",    sub:"Marcenaria · ferramentas",     img:"tour360/oficina.jpg",    thumb:"tour360/thumb-oficina.jpg",    yaw:0,
+    hotspots:[{az:6,el:-16,to:"atelie"}]},
+  {id:"studio",   nome:"Estúdio",    sub:"Trabalho · criação",           img:"tour360/studio.jpg",     thumb:"tour360/thumb-studio.jpg",     yaw:-0.3,
+    hotspots:[{az:-24,el:-16,to:"atelie"},{az:58,el:-13,to:"descanso01"}]},
+  {id:"descanso01",nome:"Descanso I", sub:"Mezanino · dormir",           img:"tour360/descanso01.jpg", thumb:"tour360/thumb-descanso01.jpg", yaw:0.1,
+    hotspots:[{az:-42,el:-13,to:"studio"},{az:44,el:-11,to:"descanso02"}]},
+  {id:"descanso02",nome:"Descanso II",sub:"Mezanino · closet · estudo",  img:"tour360/descanso02.jpg", thumb:"tour360/thumb-descanso02.jpg", yaw:0,
+    hotspots:[{az:4,el:-11,to:"descanso01"}]}
+];
+let _tour=null;
+function openTour360(){
+  if(_tour)return;
+  const root=document.createElement("div");
+  root.id="tour360";
+  root.innerHTML=`
+    <canvas></canvas>
+    <div class="t-fade"></div>
+    <div class="t-load"><div class="t-spin"></div><div class="t-load-txt">Carregando…</div></div>
+    <div class="t-top">
+      <div class="t-titlebox">
+        <div class="t-eyebrow">Passeio Virtual 360°</div>
+        <div class="t-title"></div>
+        <div class="t-sub"></div>
+      </div>
+      <div class="t-tools">
+        <button class="t-btn rot act" title="Rotação automática">◐</button>
+        <button class="t-btn gyro" title="Giroscópio (celular)">⟳</button>
+        <button class="t-btn full" title="Tela cheia">⛶</button>
+        <button class="t-btn close" title="Fechar (Esc)">✕</button>
+      </div>
+    </div>
+    <div class="t-hint show">✋ Arraste para olhar · role para dar zoom</div>
+    <div class="t-strip"></div>`;
+  document.body.appendChild(root);
+  document.documentElement.style.overflow="hidden";
+
+  const canvas=root.querySelector("canvas");
+  const gl=canvas.getContext("webgl")||canvas.getContext("experimental-webgl");
+  const elTitle=root.querySelector(".t-title"), elSub=root.querySelector(".t-sub");
+  const elFade=root.querySelector(".t-fade"), elLoad=root.querySelector(".t-load");
+  const elHint=root.querySelector(".t-hint"), elStrip=root.querySelector(".t-strip");
+  const btnRot=root.querySelector(".t-btn.rot"), btnGyro=root.querySelector(".t-btn.gyro");
+  const btnFull=root.querySelector(".t-btn.full"), btnClose=root.querySelector(".t-btn.close");
+
+  // faixa de cenas
+  TOUR_SCENES.forEach((s,i)=>{
+    const b=document.createElement("div");
+    b.className="t-scene"; b.dataset.i=i;
+    b.innerHTML=`<img src="${s.thumb}" alt="${s.nome}" loading="lazy"/><div class="t-scene-nm">${s.nome}</div>`;
+    b.onclick=()=>goScene(i);
+    elStrip.appendChild(b);
+  });
+  const sceneEls=[...elStrip.querySelectorAll(".t-scene")];
+
+  if(!gl){ // fallback sem WebGL
+    elLoad.style.display="none";
+    const img=document.createElement("img");
+    img.src=TOUR_SCENES[0].img;
+    img.style.cssText="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;";
+    root.insertBefore(img,elFade);
+    requestAnimationFrame(()=>root.classList.add("on"));
+    _tour={root};
+    btnClose.onclick=closeTour; addEventListener("keydown",escClose);
+    return;
+  }
+
+  /* ---- shaders ---- */
+  const vsrc="attribute vec3 aPos;attribute vec2 aUV;uniform mat4 uMVP;varying vec2 vUV;void main(){vUV=aUV;gl_Position=uMVP*vec4(aPos,1.0);}";
+  const fsrc="precision mediump float;uniform sampler2D uTex;varying vec2 vUV;void main(){gl_FragColor=texture2D(uTex,vUV);}";
+  function sh(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);return s;}
+  const prog=gl.createProgram();
+  gl.attachShader(prog,sh(gl.VERTEX_SHADER,vsrc));
+  gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,fsrc));
+  gl.linkProgram(prog); gl.useProgram(prog);
+  const aPos=gl.getAttribLocation(prog,"aPos"), aUV=gl.getAttribLocation(prog,"aUV");
+  const uMVP=gl.getUniformLocation(prog,"uMVP");
+
+  /* ---- esfera (equirect) ---- */
+  (function buildSphere(rows,cols){
+    const pos=[],uv=[],idx=[];
+    for(let y=0;y<=rows;y++){const v=y/rows,th=v*Math.PI,st=Math.sin(th),ct=Math.cos(th);
+      for(let x=0;x<=cols;x++){const u=x/cols,ph=u*2*Math.PI;
+        pos.push(st*Math.cos(ph),ct,st*Math.sin(ph)); uv.push(u,v);}}
+    for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){const a=y*(cols+1)+x,b=a+cols+1;idx.push(a,b,a+1,a+1,b,b+1);}
+    const pb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,pb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(pos),gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(aPos);gl.vertexAttribPointer(aPos,3,gl.FLOAT,false,0,0);
+    const ub=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,ub);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(uv),gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(aUV);gl.vertexAttribPointer(aUV,2,gl.FLOAT,false,0,0);
+    const ib=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(idx),gl.STATIC_DRAW);
+    _tourIdx=idx.length;
+  })(40,80);
+
+  const tex=gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D,tex);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,1,1,0,gl.RGB,gl.UNSIGNED_BYTE,new Uint8Array([30,28,27]));
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+
+  /* ---- estado de câmera ---- */
+  let yaw=0, pitch=0, fov=78, cur=0, autorot=true, gyroOn=false;
+  let dragging=false, lastX=0, lastY=0, vX=0, vY=0;
+  let hotspotEls=[];
+
+  /* ---- matrizes ---- */
+  function perspective(fovyDeg,asp,n,f){const t=1/Math.tan(fovyDeg*Math.PI/360);
+    return [t/asp,0,0,0, 0,t,0,0, 0,0,(f+n)/(n-f),-1, 0,0,2*f*n/(n-f),0];}
+  function fwd(y,p){return [Math.cos(p)*Math.sin(y),Math.sin(p),Math.cos(p)*Math.cos(y)];}
+  function lookAt(e,c,up){
+    let z=[e[0]-c[0],e[1]-c[1],e[2]-c[2]];let zl=Math.hypot(...z);z=z.map(v=>v/zl);
+    let x=[up[1]*z[2]-up[2]*z[1],up[2]*z[0]-up[0]*z[2],up[0]*z[1]-up[1]*z[0]];let xl=Math.hypot(...x)||1;x=x.map(v=>v/xl);
+    let yv=[z[1]*x[2]-z[2]*x[1],z[2]*x[0]-z[0]*x[2],z[0]*x[1]-z[1]*x[0]];
+    return [x[0],yv[0],z[0],0, x[1],yv[1],z[1],0, x[2],yv[2],z[2],0,
+      -(x[0]*e[0]+x[1]*e[1]+x[2]*e[2]),-(yv[0]*e[0]+yv[1]*e[1]+yv[2]*e[2]),-(z[0]*e[0]+z[1]*e[1]+z[2]*e[2]),1];}
+  function mul(a,b){const o=new Array(16);for(let i=0;i<4;i++)for(let j=0;j<4;j++){let s=0;for(let k=0;k<4;k++)s+=a[k*4+j]*b[i*4+k];o[i*4+j]=s;}return o;}
+  let MVP=null;
+
+  function resize(){
+    const dpr=Math.min(devicePixelRatio||1,2);
+    const w=root.clientWidth,h=root.clientHeight;
+    canvas.width=w*dpr;canvas.height=h*dpr;canvas.style.width=w+"px";canvas.style.height=h+"px";
+    gl.viewport(0,0,canvas.width,canvas.height);
+  }
+
+  function project(az,el){ // az/el em graus -> {x,y,vis} na tela (px CSS)
+    const a=az*Math.PI/180,e=el*Math.PI/180;
+    const p=[Math.cos(e)*Math.sin(a),Math.sin(e),Math.cos(e)*Math.cos(a)];
+    const c=MVP,w=c[3]*p[0]+c[7]*p[1]+c[11]*p[2]+c[15];
+    if(w<=0)return{vis:false};
+    const cx=c[0]*p[0]+c[4]*p[1]+c[8]*p[2]+c[12];
+    const cy=c[1]*p[0]+c[5]*p[1]+c[9]*p[2]+c[13];
+    const nx=cx/w,ny=cy/w;
+    if(nx<-1.05||nx>1.05||ny<-1.05||ny>1.05)return{vis:false};
+    return{vis:true,x:(nx*0.5+0.5)*root.clientWidth,y:(1-(ny*0.5+0.5))*root.clientHeight};
+  }
+
+  function frame(){
+    if(autorot&&!dragging&&!gyroOn)yaw+=0.0016;
+    if(!dragging&&!gyroOn){yaw+=vX;pitch+=vY;vX*=0.92;vY*=0.92;}
+    pitch=Math.max(-1.35,Math.min(1.35,pitch));
+    const asp=canvas.width/canvas.height;
+    const proj=perspective(fov,asp,0.1,100);
+    const f=fwd(yaw,pitch);
+    const view=lookAt([0,0,0],f,[0,1,0]);
+    MVP=mul(proj,view);
+    gl.uniformMatrix4fv(uMVP,false,new Float32Array(MVP));
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.drawElements(gl.TRIANGLES,_tourIdx,gl.UNSIGNED_SHORT,0);
+    // posiciona hotspots
+    const sc=TOUR_SCENES[cur];
+    hotspotEls.forEach((he,i)=>{const hs=sc.hotspots[i];const pr=project(hs.az,hs.el+0,0);
+      if(pr.vis){he.style.display="flex";he.style.left=pr.x+"px";he.style.top=pr.y+"px";}
+      else he.style.display="none";});
+    _tourRAF=requestAnimationFrame(frame);
+  }
+
+  function buildHotspots(){
+    hotspotEls.forEach(e=>e.remove()); hotspotEls=[];
+    TOUR_SCENES[cur].hotspots.forEach(hs=>{
+      const to=TOUR_SCENES.find(x=>x.id===hs.to);if(!to)return;
+      const el=document.createElement("div");el.className="t-hs";
+      el.innerHTML=`<div class="t-hs-dot">➜</div><div class="t-hs-lbl">${to.nome}</div>`;
+      el.onclick=()=>goScene(TOUR_SCENES.indexOf(to));
+      root.appendChild(el);hotspotEls.push(el);
+    });
+  }
+
+  function loadScene(i,first){
+    const s=TOUR_SCENES[i];cur=i;yaw=s.yaw||0;pitch=0;fov=78;vX=vY=0;
+    elTitle.textContent=s.nome;elSub.textContent=s.sub;
+    sceneEls.forEach((e,k)=>e.classList.toggle("on",k===i));
+    elLoad.classList.add("show");
+    const img=new Image();img.crossOrigin="anonymous";
+    img.onload=()=>{
+      gl.bindTexture(gl.TEXTURE_2D,tex);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
+      gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,img);
+      elLoad.classList.remove("show");
+      elFade.classList.remove("show");
+      buildHotspots();
+    };
+    img.onerror=()=>{elLoad.classList.remove("show");elFade.classList.remove("show");};
+    img.src=s.img;
+  }
+  function goScene(i){
+    if(i===cur){return;}
+    elFade.classList.add("show");
+    setTimeout(()=>loadScene(i,false),320);
+  }
+
+  /* ---- interação ---- */
+  function down(x,y){dragging=true;lastX=x;lastY=y;vX=vY=0;canvas.classList.add("grabbing");hideHint();}
+  function move(x,y){if(!dragging)return;const dx=(x-lastX),dy=(y-lastY);lastX=x;lastY=y;
+    const k=fov/canvas.height*Math.PI/180*3.4;yaw-=dx*k;pitch+=dy*k;vX=-dx*k*0.35;vY=dy*k*0.35;}
+  function up(){dragging=false;canvas.classList.remove("grabbing");}
+  const onMove=e=>move(e.clientX,e.clientY), onUp=up;
+  canvas.addEventListener("mousedown",e=>down(e.clientX,e.clientY));
+  addEventListener("mousemove",onMove);
+  addEventListener("mouseup",onUp);
+  let pinch=0;
+  canvas.addEventListener("touchstart",e=>{if(e.touches.length===1)down(e.touches[0].clientX,e.touches[0].clientY);
+    else if(e.touches.length===2)pinch=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);},{passive:true});
+  canvas.addEventListener("touchmove",e=>{
+    if(e.touches.length===1)move(e.touches[0].clientX,e.touches[0].clientY);
+    else if(e.touches.length===2){const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+      if(pinch)fov=Math.max(45,Math.min(100,fov-(d-pinch)*0.15));pinch=d;}
+    e.preventDefault();},{passive:false});
+  canvas.addEventListener("touchend",up);
+  canvas.addEventListener("wheel",e=>{fov=Math.max(45,Math.min(100,fov+e.deltaY*0.05));e.preventDefault();hideHint();},{passive:false});
+
+  let hintT=setTimeout(hideHint,4200);
+  function hideHint(){elHint.classList.remove("show");clearTimeout(hintT);}
+
+  /* ---- botões ---- */
+  btnRot.onclick=()=>{autorot=!autorot;btnRot.classList.toggle("act",autorot);};
+  btnFull.onclick=()=>{if(!document.fullscreenElement){(root.requestFullscreen||root.webkitRequestFullscreen).call(root);}else{(document.exitFullscreen||document.webkitExitFullscreen).call(document);}};
+  btnGyro.onclick=()=>{
+    if(gyroOn){gyroOn=false;btnGyro.classList.remove("act");removeEventListener("deviceorientation",onGyro);return;}
+    const start=()=>{gyroOn=true;btnGyro.classList.add("act");addEventListener("deviceorientation",onGyro);};
+    if(typeof DeviceOrientationEvent!=="undefined"&&DeviceOrientationEvent.requestPermission){
+      DeviceOrientationEvent.requestPermission().then(p=>{if(p==="granted")start();}).catch(()=>{});
+    }else start();
+  };
+  let gyroYaw0=null;
+  function onGyro(e){if(e.alpha==null)return;
+    if(gyroYaw0==null)gyroYaw0=e.alpha;
+    yaw=-((e.alpha-gyroYaw0)*Math.PI/180)+ (TOUR_SCENES[cur].yaw||0);
+    pitch=Math.max(-1.2,Math.min(1.2,((e.beta||0)-90)*Math.PI/180*-1));
+  }
+  btnClose.onclick=closeTour;
+  addEventListener("keydown",escClose);
+  addEventListener("resize",resize);
+
+  resize();loadScene(0,true);
+  requestAnimationFrame(()=>root.classList.add("on"));
+  _tourRAF=requestAnimationFrame(frame);
+  _tour={root,gl,onGyro,resize,onMove,onUp};
+}
+let _tourRAF=0,_tourIdx=0;
+function escClose(e){if(e.key==="Escape")closeTour();}
+function closeTour(){
+  if(!_tour)return;
+  cancelAnimationFrame(_tourRAF);
+  removeEventListener("keydown",escClose);
+  try{
+    removeEventListener("resize",_tour.resize);
+    removeEventListener("mousemove",_tour.onMove);
+    removeEventListener("mouseup",_tour.onUp);
+    removeEventListener("deviceorientation",_tour.onGyro);
+  }catch(_){}
+  if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
+  const root=_tour.root;root.classList.remove("on");
+  document.documentElement.style.overflow="";
+  setTimeout(()=>{root.remove();},350);
+  _tour=null;
+}
+
 r();
 // Deep-link: abrir direto numa aba via hash — ex: #comercial, #financeiro/entradas
 (function(){
