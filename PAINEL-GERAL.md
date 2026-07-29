@@ -12,13 +12,15 @@
 | Frente | Status | Onde vive | Última atualização | Próximo passo |
 |---|---|---|---|---|
 | Sistema Oliveira (gestão do escritório) | 🟢 Em produção, uso ativo | Este repositório (`index.html`, SPA) | 2026-07-21 (merge apresentação de orçamento) | Ver pendências abaixo |
-| Método de projeto | ⚪ Não mapeado aqui | Provavelmente ChatGPT / documento avulso | — | Exportar do ChatGPT ou descrever aqui |
+| Método de projeto | 🟡 Localizado, conteúdo não revisado | Claude.ai Projeto "GESTÃO ARQ" (tem pasta local também) | 2026-06-13 | Abrir o projeto e trazer o conteúdo pra cá |
 | Template de apresentação/orçamento (16:9) | 🟢 Feito | Este repositório, dentro do `index.html` (gerador de slides) | 2026-07-21 | Confirmar se é o item que você chamou de "template de arcade" |
-| Nova marca / identidade visual | ⚪ Não mapeado aqui | Provavelmente ChatGPT, Canva ou Drive | — | Exportar do ChatGPT ou apontar onde está |
-| Oficina Estilos (gestão da oficina) | ⚪ Não mapeado aqui | Provavelmente ChatGPT ou outro repositório | — | Exportar do ChatGPT ou apontar onde está |
+| Nova marca / identidade visual | ⚪ Não mapeado aqui | Ainda não localizado num Projeto Claude específico | — | Apontar onde está (Projeto Claude, Canva, Drive) |
+| Oficina Estilos (gestão da oficina) | 🟡 Localizado, conteúdo não revisado | Claude.ai Projeto "GESTÃO STYLOS" | 2026-06-18 | Abrir o projeto e trazer o conteúdo pra cá |
 | Classificação Oliveira (De-Para + Ramificação) | 🟢 Feito | Artifacts Claude (fora deste repo) | 2026-07-22 | Ver seção 6 |
 | MAARA — Passeio Virtual 360° | 🟢 Feito | Artifact Claude (fora deste repo) | 2026-07-24 | Ver seção 7 |
 | Arc — Expanding Cards | 🟡 Não identificado | Artifact Claude (fora deste repo) | 2026-07-23 | Confirmar se é do escritório ou exploração avulsa |
+| MÉTODO_Render IA | 🟡 Localizado, conteúdo não revisado | Claude.ai Projeto "MÉTODO_Render IA" | 2026-06-13 | Ver seção 9 |
+| Sistema Operacional Profissional (hub de métodos) | 🟡 Localizado — possível hub já existente | Claude.ai Projeto "Sistema Operacional Profi..." | 2026-06-06 | Ver seção 10 — checar sobreposição com este painel |
 
 Legenda: 🟢 feito/ativo · 🟡 em andamento · 🔴 parado/bloqueado · ⚪ não mapeado ainda (sem visibilidade a partir daqui)
 
@@ -46,9 +48,9 @@ Legenda: 🟢 feito/ativo · 🟡 em andamento · 🔴 parado/bloqueado · ⚪ n
 
 ## 2. Método de projeto
 
-*Sem visibilidade a partir deste repositório.* Prováveis fontes: conversas no ChatGPT, documento à parte.
+**Localizado:** Projeto Claude.ai "GESTÃO ARQ" (última atualização 13/06/2026), que também tem uma pasta local associada. Ainda não abri o conteúdo — você vai dar uma olhada primeiro.
 
-**Ação pendente:** você escolheu exportar o histórico completo do ChatGPT (Configurações → Dados no controle → Exportar dados). Quando o arquivo chegar por e-mail, envie o `conversations.json` (ou o `.zip`) aqui que eu extraio o que for método/framework de projeto e preencho esta seção.
+**Ação pendente:** abrir o projeto e trazer aqui o que for método/framework de projeto (ou colar o resumo, ou linkar o projeto se for compartilhável).
 
 ---
 
@@ -62,17 +64,17 @@ Se "template de arcade" que você mencionou for outra coisa (não a de orçament
 
 ## 4. Nova marca / identidade visual
 
-*Sem visibilidade a partir deste repositório.* Prováveis fontes: ChatGPT, Canva, Google Drive.
+Ainda não identifiquei um Projeto Claude.ai específico com esse nome. Pode estar dentro de um dos projetos já localizados (GESTÃO ARQ ou Sistema Operacional Profissional) ou em outro lugar (Canva, Drive).
 
-**Ação pendente:** mesma exportação do ChatGPT acima. Se a marca foi desenvolvida no Canva, me diga e eu busco lá diretamente (tenho acesso a essa ferramenta).
+**Ação pendente:** confirmar em qual projeto/pasta está, ou apontar direto (Canva, Drive, etc).
 
 ---
 
 ## 5. Oficina Estilos (gestão da oficina)
 
-*Sem visibilidade a partir deste repositório.* Pode ser uma frente inteiramente separada (outro repositório, outra ferramenta, ou só conversas).
+**Localizado:** Projeto Claude.ai "GESTÃO STYLOS" (última atualização 18/06/2026).
 
-**Ação pendente:** mesma exportação do ChatGPT acima, ou me diga se existe um repositório/planilha/sistema próprio para ela.
+**Ação pendente:** abrir o projeto e trazer aqui o essencial (o que já foi decidido/estruturado para a gestão da oficina).
 
 ---
 
@@ -95,6 +97,18 @@ https://claude.ai/code/artifact/91e5a77c-32cf-4d15-afe3-db610641f218
 Componente de UI com cards que expandem no hover ("Well-being, by design"). Não tem referência clara ao escritório Oliveira — pode ser uma exploração/estudo avulso, ou parte de um projeto ainda não descrito aqui.
 https://claude.ai/code/artifact/44b67172-7164-4850-8eee-31589c27ff4d
 **Pendente:** confirmar se isso pertence a alguma frente do escritório ou se é descartável do painel.
+
+## 9. MÉTODO_Render IA
+
+**O que é:** Projeto Claude.ai — "Estudo e testes para fluxo de Renderização com Inteligência Artificial". Última atualização 13/06/2026. Conteúdo ainda não revisado.
+
+**Ação pendente:** abrir e trazer o que já foi validado do fluxo de renderização com IA.
+
+## 10. Sistema Operacional Profissional (possível hub já existente)
+
+**Atenção:** este Projeto Claude.ai se descreve como "Central estratégica para desenvolvimento, documentação e evolução dos métodos..." (última atualização 06/06/2026) — ou seja, **pode já ser um hub equivalente ao que este painel está tentando ser.**
+
+**Ação pendente:** antes de continuar expandindo este painel, vale abrir esse projeto e decidir: unificar os dois (este painel absorve aquele, ou vice-versa), ou manter os dois com papéis diferentes e deixar claro qual é a fonte de verdade.
 
 ## Como manter isto vivo
 
