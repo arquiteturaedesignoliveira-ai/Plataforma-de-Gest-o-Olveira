@@ -16,6 +16,9 @@
 | Template de apresentação/orçamento (16:9) | 🟢 Feito | Este repositório, dentro do `index.html` (gerador de slides) | 2026-07-21 | Confirmar se é o item que você chamou de "template de arcade" |
 | Nova marca / identidade visual | ⚪ Não mapeado aqui | Provavelmente ChatGPT, Canva ou Drive | — | Exportar do ChatGPT ou apontar onde está |
 | Oficina Estilos (gestão da oficina) | ⚪ Não mapeado aqui | Provavelmente ChatGPT ou outro repositório | — | Exportar do ChatGPT ou apontar onde está |
+| Classificação Oliveira (De-Para + Ramificação) | 🟢 Feito | Artifacts Claude (fora deste repo) | 2026-07-22 | Ver seção 6 |
+| MAARA — Passeio Virtual 360° | 🟢 Feito | Artifact Claude (fora deste repo) | 2026-07-24 | Ver seção 7 |
+| Arc — Expanding Cards | 🟡 Não identificado | Artifact Claude (fora deste repo) | 2026-07-23 | Confirmar se é do escritório ou exploração avulsa |
 
 Legenda: 🟢 feito/ativo · 🟡 em andamento · 🔴 parado/bloqueado · ⚪ não mapeado ainda (sem visibilidade a partir daqui)
 
@@ -72,6 +75,26 @@ Se "template de arcade" que você mencionou for outra coisa (não a de orçament
 **Ação pendente:** mesma exportação do ChatGPT acima, ou me diga se existe um repositório/planilha/sistema próprio para ela.
 
 ---
+
+## 6. Classificação Oliveira (De-Para + Ramificação)
+
+**O que é:** sistema de classificação/taxonomia do escritório, com dois artifacts Claude que compartilham a mesma identidade visual (paleta terracota, fonte Sora):
+- **De-Para completo** — tabela de correspondência entre sistemas de classificação, com busca e estatísticas. https://claude.ai/code/artifact/bb58bbd9-3f0d-4d36-a3ed-d211b45784cd
+- **Ramificação completa** — árvore/hierarquia completa da classificação. https://claude.ai/code/artifact/6747b772-6b58-4688-a03a-1bb1ef07331a
+
+Última atualização: 2026-07-22. Provável ligação com as especificações técnicas do Sistema Oliveira (módulo de classificação/pacotes já existente no `index.html`) — a confirmar.
+
+## 7. MAARA — Passeio Virtual 360°
+
+**O que é:** visualizador de passeio virtual 360° com a marca "Arquitetura & Design Oliveira", para apresentar um projeto (MAARA) a clientes — hotspots, cenas navegáveis, giroscópio no celular.
+https://claude.ai/code/artifact/91e5a77c-32cf-4d15-afe3-db610641f218
+Última atualização: 2026-07-24.
+
+## 8. Arc — Expanding Cards *(não identificado)*
+
+Componente de UI com cards que expandem no hover ("Well-being, by design"). Não tem referência clara ao escritório Oliveira — pode ser uma exploração/estudo avulso, ou parte de um projeto ainda não descrito aqui.
+https://claude.ai/code/artifact/44b67172-7164-4850-8eee-31589c27ff4d
+**Pendente:** confirmar se isso pertence a alguma frente do escritório ou se é descartável do painel.
 
 ## Como manter isto vivo
 
