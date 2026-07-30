@@ -554,6 +554,7 @@ let S={
   clientes:[],clienteSel:null,orc:null,tplSel:"Residencial",
   rdos:[],obraFiltro:"",
   espec:[],especProj:"",especPacote:"p01",especRef:false,
+  portfolio:[],
   trash:[]
 };
 try{
@@ -567,6 +568,7 @@ try{
     S.clientes=o.clientes||[];
     S.rdos=o.rdos||[];
     S.espec=o.espec||[];
+    S.portfolio=o.portfolio||[];
     S.trash=o.trash||[];
     if(o.fin)S.fin={...FIN_DEFAULT,...o.fin,
       taxas:{...FIN_DEFAULT.taxas,...(o.fin.taxas||{})},
@@ -627,7 +629,7 @@ function autoExport(){
   localStorage.setItem("oad_backup_date",new Date().toISOString());
 }
 function save(){
-  try{localStorage.setItem("oad",JSON.stringify({equipe:S.equipe,projs:S.projs,ativ:S.ativ,fin:S.fin,timeEntries:S.timeEntries,clientes:S.clientes,rdos:S.rdos,espec:S.espec,trash:S.trash}));}catch(e){}
+  try{localStorage.setItem("oad",JSON.stringify({equipe:S.equipe,projs:S.projs,ativ:S.ativ,fin:S.fin,timeEntries:S.timeEntries,clientes:S.clientes,rdos:S.rdos,espec:S.espec,portfolio:S.portfolio,trash:S.trash}));}catch(e){}
   try{if(S.timer)localStorage.setItem("oad_timer",JSON.stringify(S.timer));else localStorage.removeItem("oad_timer");}catch(e){}
   try{localStorage.setItem("oad_updated",String(Date.now()));}catch(e){}
   if(SYNC.clientId&&SYNC.auto){clearTimeout(_syncTimer);_syncTimer=setTimeout(()=>syncPush(false),2500);}
@@ -641,7 +643,7 @@ try{const _s=localStorage.getItem("oad_sync");if(_s)SYNC={...SYNC,...JSON.parse(
 let _syncTimer=null,_gTok=null,_gTokExp=0;
 try{const _t=JSON.parse(localStorage.getItem("oad_gtok")||"null");if(_t&&_t.e>Date.now()){_gTok=_t.t;_gTokExp=_t.e;}}catch(e){}
 function syncSaveCfg(){try{localStorage.setItem("oad_sync",JSON.stringify(SYNC));}catch(e){}}
-function syncPayload(){return {equipe:S.equipe,projs:S.projs,ativ:S.ativ,fin:S.fin,timeEntries:S.timeEntries,clientes:S.clientes,rdos:S.rdos,espec:S.espec,trash:S.trash,updatedAt:Date.now(),device:navigator.userAgent.slice(0,60)};}
+function syncPayload(){return {equipe:S.equipe,projs:S.projs,ativ:S.ativ,fin:S.fin,timeEntries:S.timeEntries,clientes:S.clientes,rdos:S.rdos,espec:S.espec,portfolio:S.portfolio,trash:S.trash,updatedAt:Date.now(),device:navigator.userAgent.slice(0,60)};}
 function setSyncStatus(t,err){
   const el=document.getElementById("sync_status");
   if(el){el.textContent=t;el.style.color=err?"var(--red)":"var(--green)";}
@@ -691,7 +693,7 @@ async function gCreateFile(tok,payload){
   const j=await r.json();return j.id;
 }
 function persistLocal(){
-  try{localStorage.setItem("oad",JSON.stringify({equipe:S.equipe,projs:S.projs,ativ:S.ativ,fin:S.fin,timeEntries:S.timeEntries,clientes:S.clientes,rdos:S.rdos,espec:S.espec,trash:S.trash}));}catch(e){}
+  try{localStorage.setItem("oad",JSON.stringify({equipe:S.equipe,projs:S.projs,ativ:S.ativ,fin:S.fin,timeEntries:S.timeEntries,clientes:S.clientes,rdos:S.rdos,espec:S.espec,portfolio:S.portfolio,trash:S.trash}));}catch(e){}
 }
 
 // ===== LIXEIRA SINCRONIZADA =====
@@ -699,7 +701,7 @@ function persistLocal(){
 // aparelho ainda tenha o registro, a mesclagem sabe que ele foi excluído e não
 // o ressuscita. A lixeira permite restaurar (o registro volta e propaga) ou
 // excluir definitivamente (a lápide fica, invisível, só como supressora).
-const TRASH_TIPOS={projs:"Projeto",ativ:"Atividade",clientes:"Cliente",equipe:"Pessoa",propostas:"Proposta",contratos:"Contrato",rdos:"RDO",espec:"Especificação",timeEntries:"Registro de horas"};
+const TRASH_TIPOS={projs:"Projeto",ativ:"Atividade",clientes:"Cliente",equipe:"Pessoa",propostas:"Proposta",contratos:"Contrato",rdos:"RDO",espec:"Especificação",timeEntries:"Registro de horas",portfolio:"Projeto de portfólio"};
 function trashCol(tipo){
   if(tipo==="propostas")return S.fin.propostas;
   if(tipo==="contratos")return S.fin.contratos;
@@ -719,7 +721,7 @@ function applyTombstones(){
   const f=(arr,tipo)=>del[tipo]?arr.filter(x=>!del[tipo].has(x.id)):arr;
   S.projs=f(S.projs,"projs");S.ativ=f(S.ativ,"ativ");S.clientes=f(S.clientes,"clientes");
   S.equipe=f(S.equipe,"equipe");S.rdos=f(S.rdos,"rdos");S.espec=f(S.espec,"espec");
-  S.timeEntries=f(S.timeEntries,"timeEntries");
+  S.timeEntries=f(S.timeEntries,"timeEntries");S.portfolio=f(S.portfolio||[],"portfolio");
   S.fin.propostas=f(S.fin.propostas||[],"propostas");S.fin.contratos=f(S.fin.contratos||[],"contratos");
 }
 // Mescla lápides entre aparelhos: para a mesma lápide, vence a versão com
@@ -748,7 +750,7 @@ function trashPurge(key){
 }
 function applyCloud(o){
   S.equipe=o.equipe||S.equipe;
-  S.projs=o.projs||[];S.ativ=o.ativ||[];S.timeEntries=o.timeEntries||[];S.clientes=o.clientes||[];S.rdos=o.rdos||[];S.espec=o.espec||[];S.trash=o.trash||[];
+  S.projs=o.projs||[];S.ativ=o.ativ||[];S.timeEntries=o.timeEntries||[];S.clientes=o.clientes||[];S.rdos=o.rdos||[];S.espec=o.espec||[];S.portfolio=o.portfolio||[];S.trash=o.trash||[];
   if(o.fin)S.fin={...FIN_DEFAULT,...o.fin,taxas:{...(o.fin.taxas||{})},propostas:o.fin.propostas||[]};
   if(!S.fin.tercTemplates)S.fin.tercTemplates=TERC_TPL_DEFAULT();
   if(!S.fin.fatores)S.fin.fatores={};
@@ -774,6 +776,7 @@ function mergeCloud(rec){
   S.clientes=mergeById(S.clientes,rec.clientes);
   S.rdos=mergeById(S.rdos,rec.rdos);
   S.espec=mergeById(S.espec,rec.espec);
+  S.portfolio=mergeById(S.portfolio,rec.portfolio);
   const cf=rec.fin||{};
   S.fin={...FIN_DEFAULT,...cf,...S.fin,
     taxas:{...(cf.taxas||{}),...(S.fin.taxas||{})},
@@ -1883,10 +1886,109 @@ function finGateLocked(){
 }
 function vComercial(){
   if(finGateLocked())return vFinSenha();
-  const tabs=[["dashboard","Dashboard"],["propostas","Controle de propostas"]];
+  const tabs=[["dashboard","Dashboard"],["propostas","Controle de propostas"],["portfolio","Portfólio"]];
   const subTabs=`<div class="fin-tabs">${tabs.map(([k,l])=>`<button class="fin-tab ${(S.comTab||"dashboard")===k?"on":""}" data-com-tab="${k}">${l}</button>`).join("")}</div>`;
   if((S.comTab||"dashboard")==="propostas") return subTabs+vFinComercial();
+  if((S.comTab||"dashboard")==="portfolio") return subTabs+vPortfolio();
   return subTabs+vFinDashboard();
+}
+
+function vPortfolio(){
+  const items=(S.portfolio||[]).slice().sort((a,b)=>(b.ano||"").localeCompare(a.ano||""));
+  let h=`<div class="row" style="margin-bottom:16px;flex-wrap:wrap;gap:8px">
+    <div class="sec-title" style="margin:0;border:none;padding:0">Portfólio de projetos</div>
+    <button class="btnP" data-act="newportfolio">+ Novo projeto</button>
+  </div>`;
+  h+=`<div style="font-size:10px;color:var(--dim);margin-bottom:16px;line-height:1.5">Cadastre projetos já entregues, com fotos e tipologia. Eles aparecem automaticamente na apresentação de orçamento enviada ao cliente, filtrados pela mesma tipologia da proposta.</div>`;
+  if(!items.length)return h+`<div class="empty"><div class="empty-title">Nenhum projeto cadastrado</div><div class="muted" style="margin-bottom:16px">Adicione projetos de referência para mostrar ao cliente na apresentação de orçamento.</div><button class="btnP" data-act="newportfolio">+ Novo projeto</button></div>`;
+  h+=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px">`;
+  items.forEach(x=>{
+    h+=`<div style="background:var(--panel);border:1px solid var(--line)">
+      <div style="height:140px;background:${x.capa?`url('${x.capa}') center/cover no-repeat`:"var(--panel2)"};display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:9px;letter-spacing:2px;text-transform:uppercase">${x.capa?"":"Sem capa"}</div>
+      <div style="padding:12px 14px">
+        <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:4px">${esc(x.tipologia||"")}</div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(x.nome||"Sem nome")}</div>
+        <div style="font-size:10px;color:var(--dim);margin-bottom:10px">${[x.local,x.m2?x.m2+" m²":"",x.ano].filter(Boolean).join(" · ")||"—"}</div>
+        <div style="display:flex;gap:6px">
+          <button class="btn" style="font-size:9px;padding:4px 8px" data-editportfolio="${x.id}">Editar</button>
+          <button class="btn" style="font-size:9px;padding:4px 8px;color:var(--red);border-color:var(--red)" data-delportfolio="${x.id}">Excluir</button>
+        </div>
+      </div>
+    </div>`;
+  });
+  h+=`</div>`;
+  return h;
+}
+
+function portfolioCapture(){
+  if(!S.modal||S.modal.t!=="portfolioItem")return;
+  const d=S.modal.d,g=id=>document.getElementById(id);
+  if(g("pf_nome"))d.nome=g("pf_nome").value;
+  if(g("pf_tipologia"))d.tipologia=g("pf_tipologia").value;
+  if(g("pf_local"))d.local=g("pf_local").value;
+  if(g("pf_m2"))d.m2=g("pf_m2").value;
+  if(g("pf_ano"))d.ano=g("pf_ano").value;
+  if(g("pf_descricao"))d.descricao=g("pf_descricao").value;
+}
+function resizeImageFile(file,max,quality,cb){
+  const rd=new FileReader();
+  rd.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      let w=img.width,h=img.height;
+      if(w>max||h>max){if(w>=h){h=Math.round(h*max/w);w=max;}else{w=Math.round(w*max/h);h=max;}}
+      const cv=document.createElement("canvas");cv.width=w;cv.height=h;
+      cv.getContext("2d").drawImage(img,0,0,w,h);
+      cb(cv.toDataURL("image/jpeg",quality));
+    };
+    img.src=ev.target.result;
+  };
+  rd.readAsDataURL(file);
+}
+function portfolioAddCapa(files){
+  const f=(files||[])[0];if(!f||!f.type||f.type.indexOf("image/")!==0)return;
+  resizeImageFile(f,1400,.8,dataUrl=>{if(!S.modal||S.modal.t!=="portfolioItem")return;S.modal.d.capa=dataUrl;r();});
+}
+function portfolioAddImagens(files){
+  Array.from(files||[]).forEach(f=>{
+    if(!f.type||f.type.indexOf("image/")!==0)return;
+    resizeImageFile(f,1400,.78,dataUrl=>{if(!S.modal||S.modal.t!=="portfolioItem")return;(S.modal.d.imagens=S.modal.d.imagens||[]).push(dataUrl);r();});
+  });
+}
+function portfolioModal(d){
+  const ed=!!d.id;
+  const imgs=d.imagens||[];
+  return `<div class="ov" data-close="1"><div class="modal" style="max-width:520px;max-height:90vh;overflow-y:auto" data-stop="1">
+    <div class="modal-title">${ed?"Editar projeto de portfólio":"Novo projeto de portfólio"}</div>
+    <div class="fld"><label class="l">Nome do projeto</label><input class="inp" id="pf_nome" value="${esc(d.nome||"")}" placeholder="ex: Residência Alto da Serra"/></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="fld"><label class="l">Tipologia</label><select class="inp" id="pf_tipologia">${PROP_TIPOS.map(t=>`<option ${t===d.tipologia?"selected":""}>${t}</option>`).join("")}</select></div>
+      <div class="fld"><label class="l">Local</label><input class="inp" id="pf_local" value="${esc(d.local||"")}" placeholder="Cidade/UF"/></div>
+      <div class="fld"><label class="l">Área (m²)</label><input class="inp" type="number" id="pf_m2" value="${d.m2||""}"/></div>
+      <div class="fld"><label class="l">Ano</label><input class="inp" id="pf_ano" value="${esc(d.ano||"")}" placeholder="2025"/></div>
+    </div>
+    <div class="fld"><label class="l">Descrição</label><textarea class="inp" id="pf_descricao" rows="3" placeholder="Breve descrição para a apresentação ao cliente">${esc(d.descricao||"")}</textarea></div>
+    <div class="fld"><label class="l">Imagem de capa</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        ${d.capa?`<div style="position:relative;width:96px;height:72px"><img src="${d.capa}" style="width:96px;height:72px;object-fit:cover;border:1px solid var(--line)"/><button data-pf-delcapa="1" style="position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;border:none;cursor:pointer;font-size:12px;line-height:1;padding:0">×</button></div>`
+          :`<label style="width:96px;height:72px;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--dim);font-size:22px">+<input type="file" id="pf_capa_in" accept="image/*" style="display:none"/></label>`}
+      </div>
+    </div>
+    <div class="fld"><label class="l">Galeria (${imgs.length})</label>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px">
+        ${imgs.map((f,i)=>`<div style="position:relative;width:76px;height:76px"><img src="${f}" style="width:76px;height:76px;object-fit:cover;border:1px solid var(--line)"/><button data-pf-delimg="${i}" style="position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;border:none;cursor:pointer;font-size:12px;line-height:1;padding:0">×</button></div>`).join("")}
+        <label style="width:76px;height:76px;border:1px dashed var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--dim);font-size:26px">+<input type="file" id="pf_imagens_in" accept="image/*" multiple style="display:none"/></label>
+      </div>
+      <div style="font-size:9px;color:var(--dim)">As imagens são reduzidas automaticamente para caber no armazenamento e na sincronização.</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;gap:8px;flex-wrap:wrap">
+      ${ed?`<button class="btn" data-del-portfolio-modal="${d.id}" style="color:var(--red);border-color:var(--red)">Excluir</button>`:"<span></span>"}
+      <div style="display:flex;gap:8px">
+        <button class="btn" data-close="1">Cancelar</button>
+        <button class="btn" data-save-portfolio="${d.id||"0"}" style="background:var(--accent);border-color:var(--accent);color:#fff">Salvar</button>
+      </div>
+    </div>
+  </div></div>`;
 }
 
 /* ── FINANCEIRO ── */
@@ -2214,6 +2316,7 @@ function vFinComercial(){
         </button>
         <div style="display:flex;gap:6px;flex-shrink:0;padding:0 14px 10px;flex-wrap:wrap">
           ${cli?`<button class="btn" style="font-size:9px;padding:4px 8px" data-vercliente="${cli.id}">→ Cliente</button>`:""}
+          ${p.orc?`<button class="btn" style="font-size:9px;padding:4px 8px" data-apresent="${p.id}" title="Gerar apresentação em slides com os pacotes, portfólio e escopo">Apresentação</button>`:""}
           ${g.aprovado
             ?(p.projNome?`<span style="font-size:9px;color:var(--green);white-space:nowrap;align-self:center">→ ${esc(p.projNome)}</span>`:`<button class="btnP" style="font-size:9px;padding:4px 8px" data-mkproj="${p.id}" title="Criar projeto com os dados deste orçamento">→ Projeto</button>`)
             :g.editavel?`<button class="btn" style="font-size:9px;padding:4px 8px" data-editorc="${p.id}">Orçamento</button><button class="btn" style="font-size:9px;padding:4px 8px" data-editprop="${p.id}">Status</button>`
@@ -3344,6 +3447,8 @@ function modalHtml(){
   if(m.t==="contrato")return contratoModal();
   if(m.t==="agentes")return agentesModal();
   if(m.t==="rdo")return rdoModal(m.d);
+  if(m.t==="portfolioItem")return portfolioModal(m.d);
+  if(m.t==="apresent")return apresentacaoModal(m.d);
   return "";
 }
 
@@ -3622,6 +3727,308 @@ ${vc?`<div class="page">
   </div></div>`;
 }
 
+// ===== APRESENTAÇÃO DE ORÇAMENTO (slides 16:9) =====
+// Cores e tom seguem o Brand Book Oliveira: "A matéria se transforma. A essência permanece."
+// Paleta Origem — Terra #70503C · Vida/Sangue #A6533A (accent) · Ofício/Óleo #161514 (ink)
+const PAC_LABEL={P1:"Essencial",P2:"Executivo",P3:"Assistido"};
+const MANIFESTO_TAGLINE="A matéria se transforma. A essência permanece.";
+// p = pergunta decisiva do cliente naquela etapa (quando existe um marco de decisão); r = resposta resumida
+const JORNADA_TXT={
+  e01:{p:null,r:"Compreendemos o espaço, as pessoas e os objetivos — é na imersão nas pessoas (rotina, forma de viver, expectativas futuras) que o projeto encontra significado."},
+  e02:{p:"Esta é a direção que queremos seguir?",r:"Definimos a identidade do projeto — conceito, narrativa e atmosfera — que vai guiar todas as decisões seguintes."},
+  e03:{p:"Esta organização atende nossa forma de viver?",r:"Traduzimos como vocês vivem em uma organização espacial concreta: setorização, fluxos e uso dos ambientes."},
+  e04:{p:"Esta é a atmosfera, identidade e linguagem que desejamos?",r:"Da linguagem e materialidade à consolidação final — depois deste marco, o criativo não se reabre, protegendo vocês de retrabalho."},
+  e05:{p:"Podemos seguir com segurança técnica e financeira?",r:"Organizamos os números e o programa técnico antes da execução, para que não haja surpresas."},
+  e06:{p:null,r:"Cuidamos da aprovação legal junto aos órgãos competentes, para que tudo saia do papel com segurança."},
+  e07:{p:null,r:"Conferimos cada interferência entre as disciplinas antes da obra começar, evitando retrabalho."},
+  e08:{p:null,r:"Detalhamos cada solução construtiva com a precisão que a execução exige."},
+  e09:{p:null,r:"Documentamos cada ambiente para execução — marcenaria, marmoraria, revestimentos e iluminação."},
+  e10:{p:null,r:"Garantimos a fidelidade entre o projeto e a obra construída, até a entrega e o as built."}
+};
+function apresentacaoModal(d){
+  const p=(S.fin.propostas||[]).find(x=>x.id===d.id);
+  if(!p)return "";
+  const pk=p.pacoteApres||"P2";
+  const valor=+(p["valor"+pk]||0);
+  const matches=(S.portfolio||[]).filter(x=>x.tipologia===p.tipo);
+  return `<div class="ov" data-close="1"><div class="modal" style="max-width:520px" data-stop="1">
+  <div class="modal-title">Apresentação de orçamento — ${esc(p.cliente||"")}</div>
+  <div style="font-size:11px;color:var(--dim);margin-bottom:16px;line-height:1.6">Gera uma apresentação em slides (16:9) na identidade da marca: posicionamento, portfólio, a jornada do projeto (sem lista técnica de entregáveis), pacotes e investimento. Abre em nova aba — apresente em tela cheia ou salve como PDF.</div>
+  <div style="border:1px solid var(--line);padding:16px;background:var(--panel2);margin-bottom:16px">
+    <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:8px">Pré-visualização</div>
+    <div style="font-size:12px;font-weight:600;margin-bottom:4px">${esc(p.cliente||"NOME DO CLIENTE")}</div>
+    <div style="font-size:11px;color:var(--dim);margin-bottom:8px">${esc(p.tipo||"—")} · Orçamento #${p.num||"—"}</div>
+    <div style="font-size:10px;color:var(--accent);font-weight:600;margin-bottom:4px">Pacote ${esc(PAC_LABEL[pk]||pk)} em destaque · ${valor?fmtBRL(valor):"valor não definido"}</div>
+    <div style="font-size:10px;color:var(--dim)">${matches.length?matches.length+" projeto"+(matches.length!==1?"s":"")+" de portfólio nesta tipologia":"Nenhum projeto de portfólio cadastrado nesta tipologia ainda"}</div>
+  </div>
+  <div style="display:flex;gap:8px;justify-content:flex-end">
+    <button class="btn" data-close="1">Fechar</button>
+    <button class="btnP" onclick="abrirApresentacao('${esc(p.id)}')">Abrir apresentação</button>
+  </div>
+  </div></div>`;
+}
+function abrirApresentacao(id){
+  const p=(S.fin.propostas||[]).find(x=>x.id===id);if(!p)return;
+  const w=window.open("","_blank");
+  if(!w){alert("Permita pop-ups para abrir a apresentação.");return;}
+  w.document.write(apresentacaoSlidesHTML(p));
+  w.document.close();
+}
+function apresentacaoSlidesHTML(p){
+  const o=p.orc||{};
+  const pkUpper=p.pacoteApres||"P3"; // Assistido é o pacote de destaque por padrão
+  const pk=pkUpper.toLowerCase();
+  const ambientes=o.ambientes||[];
+  const areaTotal=ambientes.reduce((s,a)=>s+(+a.m2||0)*(+a.qtd||1),0);
+  const n1=v=>(Math.round(v*10)/10).toLocaleString("pt-BR");
+  const hoje=new Date();
+  const matches=(S.portfolio||[]).filter(x=>x.tipologia===p.tipo).sort((a,b)=>(b.ano||"").localeCompare(a.ano||"")).slice(0,4);
+  const jornada=ORC_ENT.filter(e=>o.esc?.[e.k]?.[pk]);
+
+  const slides=[];
+
+  // 1. Capa — identidade da marca antes de qualquer número
+  slides.push(`<div class="slide slide-capa">
+    <div class="accent-bar"></div>
+    <div class="label">Proposta de Projeto</div>
+    <div class="title-serif">${esc(p.tipo||"Projeto")}</div>
+    <div class="cliente-nome">${esc(p.cliente||"NOME DO CLIENTE")}</div>
+    <div class="tagline">${MANIFESTO_TAGLINE}</div>
+    <div class="footer">
+      <div class="footer-info">arquiteturaedesign.oliveira@gmail.com · @arquiteto.oliveira · 34 99828 0635</div>
+      <div class="footer-info">Wallisson Oliveira · Arquitetura &amp; Interiores</div>
+    </div>
+  </div>`);
+
+  // 2. Posicionamento — o valor e a relação, antes do processo
+  slides.push(`<div class="slide">
+    <div class="sec">Como Trabalhamos</div>
+    <div class="manifesto-grande">Projeto completo — arquitetura e interiores como uma coisa só.</div>
+    <div class="manifesto-corpo">O espaço e o modo de habitá-lo nascem do mesmo conceito, não de duas contratações separadas. Cada projeto começa com a sua história — o seu jeito de morar — e não com um catálogo de referências prontas.</div>
+    <div class="divider"></div>
+    <div class="manifesto-quote">${MANIFESTO_TAGLINE}</div>
+    <div class="footer">
+      <div class="footer-info">${esc(p.cliente||"")} · ${fmtDate(hoje)}</div>
+      <div class="footer-info">Wallisson Oliveira · Arquitetura &amp; Interiores</div>
+    </div>
+  </div>`);
+
+  // 3. Portfólio — prova visual, logo após o posicionamento (grade numerada, tipo moodboard)
+  if(matches.length)slides.push(`<div class="slide">
+    <div class="sec">Histórias que já viraram projeto</div>
+    <div style="display:grid;grid-template-columns:repeat(${Math.min(matches.length,2)},1fr);gap:28px;margin-top:18px">
+      ${matches.map((x,i)=>`<div>
+        <div style="position:relative;height:230px;background:${x.capa?`url('${x.capa}') center/cover no-repeat`:"var(--line)"};margin-bottom:12px">
+          <div class="moodboard-num">${String(i+1).padStart(2,"0")}</div>
+        </div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:3px">${esc(x.nome||"")}</div>
+        <div style="font-size:10px;color:var(--dim)">${esc([x.local,x.m2?x.m2+" m²":"",x.ano].filter(Boolean).join(" · "))}</div>
+      </div>`).join("")}
+    </div>
+    <div class="footer">
+      <div class="footer-info">${esc(p.cliente||"")} · ${fmtDate(hoje)}</div>
+      <div class="footer-info">Portfólio · ${esc(p.tipo||"")}</div>
+    </div>
+  </div>`);
+
+  // 4. O seu projeto — mostra que ouvimos a história do cliente
+  slides.push(`<div class="slide">
+    <div class="sec">O Seu Projeto</div>
+    <div class="grid2">
+      <div>
+        <div class="dado-label">Cliente</div><div class="dado-val">${esc(p.cliente||"—")}</div>
+        <div style="margin-top:14px"><div class="dado-label">Tipo de projeto</div><div class="dado-val">${esc(p.tipo||"—")}</div></div>
+        <div style="margin-top:14px"><div class="dado-label">Intervenção</div><div class="dado-val">${esc(p.interv||"—")}</div></div>
+        <div style="margin-top:14px"><div class="dado-label">Área total do programa</div><div class="dado-val">${areaTotal?n1(areaTotal)+" m²":"—"}</div></div>
+      </div>
+      <div>
+        <div class="dado-label" style="margin-bottom:8px">Programa de necessidades</div>
+        ${ambientes.length?ambientes.map(a=>`<div class="escopo-item"><div class="escopo-dot"></div><div>${esc(a.amb)}${(+a.qtd||1)>1?" ×"+a.qtd:""}${a.m2?" — "+a.m2+" m²":""}</div></div>`).join(""):`<div style="font-size:12px;color:var(--dim)">A definir</div>`}
+      </div>
+    </div>
+    <div class="footer">
+      <div class="footer-info">${esc(p.cliente||"")} · ${fmtDate(hoje)}</div>
+      <div class="footer-info">Proposta válida por ${esc(o.cliente?.validade||"15 dias")}</div>
+    </div>
+  </div>`);
+
+  // 5. A jornada — a experiência de trabalhar juntos, não uma lista de entregáveis
+  if(jornada.length)slides.push(`<div class="slide">
+    <div class="sec" style="margin-bottom:10px">A Jornada do Seu Projeto</div>
+    <div class="jornada">
+      ${jornada.map((e,i)=>{const j=JORNADA_TXT[e.k]||{};return `<div class="jornada-item">
+        <div class="jornada-num">${String(i+1).padStart(2,"0")}</div>
+        <div>
+          <div class="jornada-titulo">${esc(e.nome.replace(/^\d+\s*/,""))}</div>
+          ${j.p?`<div class="jornada-pergunta">"${esc(j.p)}"</div>`:""}
+          <div class="jornada-txt">${esc(j.r||"")}</div>
+        </div>
+      </div>`;}).join("")}
+    </div>
+    <div class="footer">
+      <div class="footer-info">${esc(p.cliente||"")} · ${fmtDate(hoje)}</div>
+      <div class="footer-info">Pacote ${esc(PAC_LABEL[pkUpper]||pkUpper)}</div>
+    </div>
+  </div>`);
+
+  // 6. Pacotes — cards modulares (não planilha)
+  slides.push(`<div class="slide">
+    <div class="sec">Como Você Quer Viver Esse Projeto</div>
+    <div class="pac-grid">
+      ${["P2","P3"].map(pkx=>{
+        const destaque=pkx===pkUpper;
+        const itens=ORC_ENT.filter(e=>o.esc?.[e.k]?.[pkx.toLowerCase()]);
+        return `<div class="pac-card${destaque?" pac-card-destaque":""}">
+          ${destaque?'<div class="pac-card-badge">★ Recomendado</div>':""}
+          <div class="pac-card-nome">${PAC_LABEL[pkx]}</div>
+          <div class="pac-card-preco">${fmtBRL(+(p["valor"+pkx]||0))}</div>
+          <div class="divider" style="margin:12px 0"></div>
+          <div class="pac-card-lista">
+            ${itens.map(e=>`<div class="pac-card-item">${esc(e.nome.replace(/^\d+\s*/,""))}</div>`).join("")}
+          </div>
+        </div>`;
+      }).join("")}
+    </div>
+    <div class="footer">
+      <div class="footer-info">${esc(p.cliente||"")} · ${fmtDate(hoje)}</div>
+      <div class="footer-info">★ pacote recomendado</div>
+    </div>
+  </div>`);
+
+  // 7. Investimento e próximos passos — fecha com a mesma frase da capa
+  slides.push(`<div class="slide">
+    <div class="sec">O Investimento</div>
+    <div class="valor-box">
+      <div class="dado-label">Valor do pacote ${esc(PAC_LABEL[pkUpper]||pkUpper)}</div>
+      <div class="valor-num">${fmtBRL(+(p["valor"+pkUpper]||0))}</div>
+    </div>
+    <div class="divider"></div>
+    <div class="sec">Condições de Pagamento</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px">
+      <div class="escopo-item"><div class="escopo-dot"></div><div><strong>À vista</strong> — no ato da assinatura do contrato</div></div>
+      <div class="escopo-item"><div class="escopo-dot"></div><div><strong>Boleto</strong> — entrada + parcelas (acréscimo de R$ 5,00 por boleto)</div></div>
+      <div class="escopo-item"><div class="escopo-dot"></div><div><strong>Cartão de crédito</strong> — acréscimo de 5% sobre o valor total</div></div>
+    </div>
+    <div class="divider"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:20px">
+      <div>
+        <div class="sec">Está incluso</div>
+        <div class="escopo-item"><div class="escopo-dot"></div><div>R.R.T. (Registro de Responsabilidade Técnica)</div></div>
+        <div class="escopo-item"><div class="escopo-dot"></div><div>Assessoria via WhatsApp no horário de atendimento</div></div>
+        <div class="escopo-item"><div class="escopo-dot"></div><div>1 cópia digital do projeto final</div></div>
+        <div class="escopo-item"><div class="escopo-dot"></div><div>Até 2 revisões por etapa criativa</div></div>
+      </div>
+      <div>
+        <div class="sec">Não está incluso</div>
+        <div class="escopo-item"><div class="escopo-dot"></div><div>A.R.T. (Anotação de Responsabilidade Técnica)</div></div>
+        <div class="escopo-item"><div class="escopo-dot"></div><div>Projetos complementares (estrutural, hidrossanitário, elétrico)</div></div>
+        <div class="escopo-item"><div class="escopo-dot"></div><div>Gerenciamento e acompanhamento de obra</div></div>
+        <div class="escopo-item"><div class="escopo-dot"></div><div>Taxas de aprovação em órgãos municipais/estaduais</div></div>
+      </div>
+    </div>
+    <div class="manifesto-quote" style="text-align:center">${MANIFESTO_TAGLINE}</div>
+    <div class="footer">
+      <div class="footer-info">arquiteturaedesign.oliveira@gmail.com · @arquiteto.oliveira</div>
+      <div class="footer-info" style="color:var(--accent)">Proposta válida por ${esc(o.cliente?.validade||"15 dias")} · ${fmtDate(hoje)}</div>
+    </div>
+  </div>`);
+
+  return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"/><title>Apresentação — ${esc(p.cliente||"")}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400;1,500&family=Montserrat:wght@300;400;500;600;700&display=swap" media="print" onload="this.media='all'"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--ink:#161514;--terra:#70503C;--accent:#A6533A;--dim:#917563;--line:#E3DDD6;--bg:#FEFCFA;}
+html,body{background:#2b2926;}
+body{font-family:'Montserrat',Helvetica,Arial,sans-serif;color:var(--ink);font-size:14px;line-height:1.6;padding:24px 0 70px;}
+.slide{width:1280px;height:720px;background-color:var(--bg);padding:56px 76px;position:relative;overflow:hidden;margin:0 auto 24px;display:none;
+  background-image:linear-gradient(var(--ink),var(--ink)),linear-gradient(var(--ink),var(--ink)),linear-gradient(var(--ink),var(--ink)),linear-gradient(var(--ink),var(--ink));
+  background-size:6px 6px;background-repeat:no-repeat;
+  background-position:24px 24px, calc(100% - 30px) 24px, 24px calc(100% - 30px), calc(100% - 30px) calc(100% - 30px);}
+.slide.active{display:block;}
+.label{font-size:10px;letter-spacing:4px;text-transform:uppercase;color:var(--dim);margin-bottom:10px;font-weight:600;}
+.title-serif{font-family:'Playfair Display',Georgia,'Times New Roman',serif;font-size:40px;font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
+.cliente-nome{font-family:'Playfair Display',Georgia,'Times New Roman',serif;font-size:26px;font-weight:400;font-style:italic;color:var(--terra);margin-top:26px;margin-bottom:22px;}
+.tagline{font-family:'Playfair Display',Georgia,'Times New Roman',serif;font-size:17px;font-style:italic;color:var(--accent);margin-top:10px;}
+.slide-capa .footer{border-top-color:var(--line);}
+.divider{height:1px;background:var(--line);margin:18px 0;}
+.accent-bar{height:4px;background:var(--accent);width:56px;margin-bottom:24px;}
+.sec{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:18px;padding-bottom:8px;border-bottom:1px solid var(--line);}
+.manifesto-grande{font-family:'Playfair Display',Georgia,'Times New Roman',serif;font-size:28px;font-weight:600;line-height:1.35;max-width:900px;margin-bottom:20px;}
+.manifesto-corpo{font-size:14px;color:var(--ink);line-height:1.75;max-width:800px;}
+.manifesto-quote{font-family:'Playfair Display',Georgia,'Times New Roman',serif;font-size:19px;font-style:italic;color:var(--accent);margin-top:16px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+.dado-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:3px;}
+.dado-val{font-size:14px;font-weight:500;}
+.escopo-item{display:flex;align-items:flex-start;gap:9px;padding:5px 0;border-bottom:1px solid var(--line);font-size:12px;}
+.escopo-dot{width:5px;height:5px;background:var(--accent);flex-shrink:0;margin-top:6px;}
+.jornada{display:grid;grid-template-columns:1fr 1fr;gap:4px 32px;align-content:start;}
+.jornada-item{display:flex;gap:14px;align-items:flex-start;padding:8px 0;border-left:2px solid var(--line);padding-left:14px;}
+.jornada-num{width:26px;flex-shrink:0;font-family:'Playfair Display',Georgia,'Times New Roman',serif;font-size:15px;color:var(--accent);font-weight:600;}
+.jornada-titulo{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;}
+.jornada-pergunta{font-family:'Playfair Display',Georgia,'Times New Roman',serif;font-size:11.5px;font-style:italic;color:var(--accent);margin-bottom:2px;line-height:1.3;}
+.jornada-txt{font-size:10px;color:var(--dim);line-height:1.4;}
+.moodboard-num{position:absolute;top:8px;left:8px;font-family:'Playfair Display',Georgia,'Times New Roman',serif;font-size:12px;color:var(--ink);background:rgba(255,255,255,.88);padding:2px 7px;}
+.pac-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:28px;margin-top:12px;max-width:820px;}
+.pac-card{border:1px solid var(--line);padding:20px 18px;position:relative;}
+.pac-card-destaque{border:1px solid var(--accent);background:rgba(166,83,58,.04);}
+.pac-card-badge{position:absolute;top:-11px;left:18px;background:var(--accent);color:#fff;font-size:9px;letter-spacing:1px;text-transform:uppercase;font-weight:700;padding:3px 9px;}
+.pac-card-nome{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700;color:var(--dim);margin-top:4px;}
+.pac-card-destaque .pac-card-nome{color:var(--accent);}
+.pac-card-preco{font-family:'Playfair Display',Georgia,'Times New Roman',serif;font-size:26px;font-weight:600;color:var(--ink);margin-top:4px;}
+.pac-card-item{font-size:10px;color:var(--ink);padding:4px 0;border-bottom:1px solid var(--line);}
+.pac-card-item::before{content:"✓ ";color:var(--accent);font-weight:700;}
+.valor-box{border-top:3px solid var(--accent);padding:26px;text-align:center;margin:20px 0;}
+.valor-num{font-family:'Playfair Display',Georgia,'Times New Roman',serif;font-size:42px;font-weight:600;letter-spacing:1px;color:var(--ink);}
+.footer{position:absolute;bottom:30px;left:76px;right:76px;display:flex;justify-content:space-between;align-items:flex-end;border-top:1px solid var(--line);padding-top:10px;}
+.footer-info{font-size:9px;color:var(--dim);letter-spacing:.5px;}
+.toolbar{position:fixed;bottom:0;left:0;right:0;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;gap:16px;padding:12px;font-family:Arial,Helvetica,sans-serif;font-size:12px;z-index:10;}
+.toolbar button{cursor:pointer;font-family:inherit;}
+@media print{
+  @page{size:landscape;margin:0;}
+  body{background:#fff;padding:0;}
+  .toolbar{display:none!important;}
+  .slide{display:block!important;transform:none!important;width:33.867cm;height:19.05cm;margin:0;page-break-after:always;}
+}
+</style></head>
+<body>
+${slides.join("\n")}
+<div class="toolbar">
+  <button id="nav-prev" style="background:none;border:1px solid #585857;color:#fff;padding:7px 16px">← Anterior</button>
+  <span id="slide-counter">1 / ${slides.length}</span>
+  <button id="nav-next" style="background:none;border:1px solid #585857;color:#fff;padding:7px 16px">Próximo →</button>
+  <button id="nav-print" style="background:#A6533A;border:none;color:#fff;padding:7px 16px;margin-left:20px">Imprimir / Salvar PDF</button>
+</div>
+<script>
+(function(){
+  var idx=0;
+  var slides=document.querySelectorAll('.slide');
+  function fit(){
+    var s=slides[idx];if(!s)return;
+    var scale=Math.min((window.innerWidth-40)/1280,(window.innerHeight-90)/720,1);
+    s.style.transform='scale('+scale+')';
+    s.style.transformOrigin='top center';
+  }
+  function show(i){
+    idx=Math.max(0,Math.min(slides.length-1,i));
+    slides.forEach(function(s,j){s.classList.toggle('active',j===idx);});
+    var c=document.getElementById('slide-counter');if(c)c.textContent=(idx+1)+' / '+slides.length;
+    fit();
+  }
+  window.addEventListener('resize',fit);
+  document.addEventListener('keydown',function(e){
+    if(e.key==='ArrowRight'||e.key===' ')show(idx+1);
+    if(e.key==='ArrowLeft')show(idx-1);
+  });
+  var btnN=document.getElementById('nav-next');if(btnN)btnN.onclick=function(){show(idx+1);};
+  var btnP=document.getElementById('nav-prev');if(btnP)btnP.onclick=function(){show(idx-1);};
+  var btnPrint=document.getElementById('nav-print');if(btnPrint)btnPrint.onclick=function(){window.print();};
+  show(0);
+})();
+<\/script>
+</body></html>`;
+}
+
 function extensoBRL(v){
   if(!v)return "";
   return "";// extenso opcional — deixa em branco por padrão
@@ -3742,6 +4149,43 @@ function bind(){
     save();r();
   });
 
+  // PORTFÓLIO
+  A("[data-act='newportfolio']",()=>{S.modal={t:"portfolioItem",d:{tipologia:PROP_TIPOS[0],imagens:[]}};r();});
+  document.querySelectorAll("[data-editportfolio]").forEach(b=>b.onclick=()=>{
+    const x=(S.portfolio||[]).find(z=>z.id===b.dataset.editportfolio);
+    if(x)S.modal={t:"portfolioItem",d:{...x,imagens:[...(x.imagens||[])]}};r();
+  });
+  document.querySelectorAll("[data-delportfolio]").forEach(b=>b.onclick=()=>{
+    if(!confirm("Excluir este projeto do portfólio?"))return;
+    const x=(S.portfolio||[]).find(z=>z.id===b.dataset.delportfolio);if(x)toTrash("portfolio",x,x.nome);
+    S.portfolio=(S.portfolio||[]).filter(z=>z.id!==b.dataset.delportfolio);
+    save();r();
+  });
+  if(S.modal&&S.modal.t==="portfolioItem"){
+    const _pfcap=document.getElementById("pf_capa_in");if(_pfcap)_pfcap.onchange=()=>{portfolioCapture();portfolioAddCapa(_pfcap.files);};
+    const _pfimg=document.getElementById("pf_imagens_in");if(_pfimg)_pfimg.onchange=()=>{portfolioCapture();portfolioAddImagens(_pfimg.files);};
+    A("[data-pf-delcapa]",()=>{portfolioCapture();S.modal.d.capa="";r();});
+    document.querySelectorAll("[data-pf-delimg]").forEach(b=>b.onclick=()=>{portfolioCapture();(S.modal.d.imagens||[]).splice(+b.dataset.pfDelimg,1);r();});
+    const _spf=document.querySelector("[data-save-portfolio]");
+    if(_spf)_spf.onclick=()=>{
+      portfolioCapture();
+      const d=S.modal.d;
+      if(!d.nome||!d.nome.trim()){alert("Informe o nome do projeto.");return;}
+      const o={nome:d.nome.trim(),tipologia:d.tipologia||PROP_TIPOS[0],local:d.local||"",m2:+d.m2||0,ano:d.ano||"",descricao:d.descricao||"",capa:d.capa||"",imagens:d.imagens||[]};
+      const id=_spf.dataset.savePortfolio;
+      S.portfolio=S.portfolio||[];
+      if(id&&id!=="0"){S.portfolio=S.portfolio.map(x=>x.id===id?{...x,...o}:x);}
+      else{S.portfolio.push({...o,id:uid()});}
+      S.modal=null;save();r();
+    };
+    document.querySelectorAll("[data-del-portfolio-modal]").forEach(b=>b.onclick=()=>{
+      if(!confirm("Excluir este projeto do portfólio?"))return;
+      const x=(S.portfolio||[]).find(z=>z.id===b.dataset.delPortfolioModal);if(x)toTrash("portfolio",x,x.nome);
+      S.portfolio=(S.portfolio||[]).filter(z=>z.id!==b.dataset.delPortfolioModal);
+      S.modal=null;save();r();
+    });
+  }
+
   // ORÇAMENTO — calculadora
   A("[data-act='neworc']",()=>{startOrc();r();});
   document.querySelectorAll("[data-editorc]").forEach(b=>b.onclick=()=>{
@@ -3754,6 +4198,7 @@ function bind(){
     const vc=+(p.valorFechado||p["valor"+(p.pacoteApres||"P2")]||0)||0;
     S.modal={t:"proj",d:{nome:"",cliente:p.cliente||"",tipologia:TIPOS[0],m2:m2real||0,status:"Ativo",valorContratado:vc,propId:p.id,fromProp:p.num,endObra:p.orc?.cliente?.endObra||""}};r();
   });
+  document.querySelectorAll("[data-apresent]").forEach(b=>b.onclick=()=>{S.modal={t:"apresent",d:{id:b.dataset.apresent}};r();});
   if(S.orc){
     document.querySelectorAll("[data-orc-step]").forEach(b=>b.onclick=()=>{S.orc.step=+b.dataset.orcStep;r();});
     A("[data-orc-close]",()=>{S.orc=null;S.modal=null;r();});
