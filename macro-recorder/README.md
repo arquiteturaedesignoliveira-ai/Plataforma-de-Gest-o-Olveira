@@ -79,9 +79,16 @@ pressionar e soltar cada tecla é gravado separadamente, combinações e
 atalhos (ex: `Ctrl+Alt+J`) são reproduzidos naturalmente, sem que o
 aplicativo precise "entender" o que aquele atalho faz.
 
-## Instalação (desenvolvimento)
+## Como abrir no Windows
 
-Requer Windows + Python 3.10+.
+Requer Windows + [Python 3.10+](https://www.python.org/downloads/)
+(marque **"Add Python to PATH"** ao instalar).
+
+**Modo mais simples:** dê duplo clique em `run.bat`. Na primeira vez ele
+prepara o ambiente e instala as dependências sozinho; nas próximas, abre
+o aplicativo direto.
+
+**Pela linha de comando:**
 
 ```bat
 cd macro-recorder
