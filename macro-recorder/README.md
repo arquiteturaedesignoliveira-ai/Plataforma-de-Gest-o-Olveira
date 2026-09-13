@@ -79,6 +79,12 @@ pressionar e soltar cada tecla é gravado separadamente, combinações e
 atalhos (ex: `Ctrl+Alt+J`) são reproduzidos naturalmente, sem que o
 aplicativo precise "entender" o que aquele atalho faz.
 
+O que se grava é sempre a **tecla física** (pelo virtual-key code do
+Windows), não o caractere resultante. Isso é necessário porque, com Ctrl
+pressionado, o Windows reporta um caractere de controle — `Ctrl+M` viria
+como `\r` e seria reproduzido como Enter. Gravando a tecla física,
+`Ctrl+Shift+M` é reproduzido exatamente como foi feito.
+
 ## Como abrir no Windows
 
 Requer Windows + [Python 3.10+](https://www.python.org/downloads/)

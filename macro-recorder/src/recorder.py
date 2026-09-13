@@ -10,6 +10,7 @@ from typing import Callable, List, Optional
 
 from pynput import keyboard, mouse
 
+from keymap import key_to_str
 from models import (
     EVENT_KEY_DOWN,
     EVENT_KEY_UP,
@@ -17,17 +18,6 @@ from models import (
     EVENT_MOUSE_UP,
     MacroEvent,
 )
-
-
-def _key_to_str(key) -> str:
-    """Converte uma tecla do pynput para uma string estavel e legivel."""
-    if isinstance(key, keyboard.KeyCode):
-        if key.char is not None:
-            return key.char
-        # Tecla sem caractere imprimivel (ex: layout especial) -> usa o vk.
-        return f"vk_{key.vk}"
-    # keyboard.Key.* (teclas especiais: ctrl_l, alt_l, enter, esc, f1, etc.)
-    return key.name
 
 
 class MacroRecorder:
@@ -98,11 +88,11 @@ class MacroRecorder:
 
     def _on_key_press(self, key) -> None:
         delay = self._delay_since_last()
-        self._record(MacroEvent(type=EVENT_KEY_DOWN, delay=delay, key=_key_to_str(key)))
+        self._record(MacroEvent(type=EVENT_KEY_DOWN, delay=delay, key=key_to_str(key)))
 
     def _on_key_release(self, key) -> None:
         delay = self._delay_since_last()
-        self._record(MacroEvent(type=EVENT_KEY_UP, delay=delay, key=_key_to_str(key)))
+        self._record(MacroEvent(type=EVENT_KEY_UP, delay=delay, key=key_to_str(key)))
 
     def _on_click(self, x, y, button, pressed) -> None:
         delay = self._delay_since_last()

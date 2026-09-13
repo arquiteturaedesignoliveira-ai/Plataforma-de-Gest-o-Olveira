@@ -17,11 +17,13 @@ from player import MacroPlayer
 from recorder import MacroRecorder
 
 STATUS_IDLE = ("Pronto", "#2e7d32")
+STATUS_STARTING = ("Iniciando gravacao...", "#ef6c00")
 STATUS_RECORDING = ("● Gravando...", "#c62828")
 STATUS_PLAYING = ("▶ Executando...", "#1565c0")
 STATUS_WAITING = ("Aguarde, prepare a janela de destino...", "#ef6c00")
 
 PLAYBACK_START_DELAY = 3.0  # segundos de contagem regressiva antes de executar
+RECORD_START_DELAY = 0.5    # atraso antes de comecar a capturar, ao clicar Gravar
 
 
 class MacroRecorderApp:
@@ -37,6 +39,7 @@ class MacroRecorderApp:
         self.hotkey_manager = GlobalHotkeyManager()
 
         self._current_macro: Optional[Macro] = None
+        self._record_pending = False  # entre o clique em "Gravar" e o inicio da captura
         self._build_ui()
         self._refresh_list()
         self._register_all_hotkeys()
@@ -120,9 +123,7 @@ class MacroRecorderApp:
         return sel[0] if sel else None
 
     def _update_button_states(self) -> None:
-        recording = self.recorder.is_recording
-        playing = self.player.is_playing
-        busy = recording or playing
+        busy = self.recorder.is_recording or self.player.is_playing or self._record_pending
         has_selection = self._selected_name() is not None
 
         self.btn_new.config(state=tk.DISABLED if busy else tk.NORMAL)
@@ -164,12 +165,28 @@ class MacroRecorderApp:
             ):
                 return
         self._current_macro = macro
+        self._record_pending = True
+        self._set_status(STATUS_STARTING)
+        self._update_button_states()
+        # Pequeno atraso para que a soltura do proprio clique no botao
+        # "Gravar" nao entre como primeira acao da macro.
+        self.root.after(int(RECORD_START_DELAY * 1000), self._begin_recording)
+
+    def _begin_recording(self) -> None:
+        if not self._record_pending or self._current_macro is None:
+            return  # gravacao cancelada antes de comecar
+        self._record_pending = False
+        self.recorder.start()
         self._set_status(STATUS_RECORDING)
         self._update_button_states()
-        self.recorder.start()
 
     def _on_stop(self) -> None:
-        if self.recorder.is_recording:
+        if self._record_pending:
+            # Cancelado antes de a captura comecar de fato.
+            self._record_pending = False
+            self._current_macro = None
+            self._set_status(STATUS_IDLE)
+        elif self.recorder.is_recording:
             events = self.recorder.stop()
             macro = self._current_macro
             if macro is not None:

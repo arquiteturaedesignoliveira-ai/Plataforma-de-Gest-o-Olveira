@@ -9,6 +9,7 @@ from typing import Callable, Optional
 
 from pynput import keyboard, mouse
 
+from keymap import str_to_key
 from models import (
     EVENT_KEY_DOWN,
     EVENT_KEY_UP,
@@ -17,17 +18,6 @@ from models import (
     Macro,
     MacroEvent,
 )
-
-# Mapa de nomes especiais (keyboard.Key) usados na gravacao -> objeto pynput.
-_SPECIAL_KEYS = {k.name: k for k in keyboard.Key}
-
-
-def _str_to_key(name: str):
-    if name in _SPECIAL_KEYS:
-        return _SPECIAL_KEYS[name]
-    if name.startswith("vk_"):
-        return keyboard.KeyCode(vk=int(name[3:]))
-    return keyboard.KeyCode.from_char(name)
 
 
 class MacroPlayer:
@@ -93,9 +83,9 @@ class MacroPlayer:
 
     def _execute(self, event: MacroEvent) -> None:
         if event.type == EVENT_KEY_DOWN:
-            self._keyboard.press(_str_to_key(event.key))
+            self._keyboard.press(str_to_key(event.key))
         elif event.type == EVENT_KEY_UP:
-            self._keyboard.release(_str_to_key(event.key))
+            self._keyboard.release(str_to_key(event.key))
         elif event.type == EVENT_MOUSE_DOWN:
             self._mouse.position = (event.x, event.y)
             self._mouse.press(getattr(mouse.Button, event.button))

@@ -11,6 +11,26 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from models import Macro, MacroEvent, EVENT_KEY_DOWN, EVENT_KEY_UP  # noqa: E402
 from storage import MacroStorage, sanitize_filename  # noqa: E402
 from macro_manager import MacroManager  # noqa: E402
+from keymap import vk_to_name, name_to_vk  # noqa: E402
+
+
+def test_keymap_letters_and_digits():
+    # A tecla fisica M (vk 77) deve virar 'm' e voltar a ser 77, mesmo que
+    # o Windows reporte um caractere de controle quando Ctrl esta pressionado.
+    assert vk_to_name(77) == "m"
+    assert name_to_vk("m") == 77
+    assert vk_to_name(74) == "j"
+    assert vk_to_name(49) == "1"
+    assert name_to_vk("1") == 49
+
+
+def test_keymap_numpad_and_unknown():
+    assert vk_to_name(97) == "num_1"
+    assert name_to_vk("num_1") == 97
+    assert vk_to_name(107) == "num_add"
+    assert vk_to_name(255) is None          # sem nome legivel conhecido
+    assert name_to_vk("vk_255") == 255      # mas ainda reproduzivel
+    assert name_to_vk("enter") is None      # tecla especial, tratada a parte
 
 
 def test_macro_roundtrip_json():
@@ -79,6 +99,8 @@ def test_macro_manager_validations():
 
 
 if __name__ == "__main__":
+    test_keymap_letters_and_digits()
+    test_keymap_numpad_and_unknown()
     test_macro_roundtrip_json()
     test_sanitize_filename()
     test_storage_crud()
