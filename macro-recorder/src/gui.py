@@ -12,7 +12,7 @@ from typing import Optional
 
 from hotkeys import GlobalHotkeyManager, normalize_combo
 from macro_manager import MacroManager
-from models import Macro
+from models import WAIT_MODE_FIXED, WAIT_MODE_SMART, Macro
 from player import MacroPlayer
 from recorder import MacroRecorder
 
@@ -65,16 +65,18 @@ class MacroRecorderApp:
         list_frame = ttk.Frame(top)
         list_frame.pack(fill=tk.BOTH, expand=True)
 
-        columns = ("eventos", "duracao", "atalho")
+        columns = ("eventos", "duracao", "espera", "atalho")
         self.tree = ttk.Treeview(list_frame, columns=columns, show="tree headings", selectmode="browse")
         self.tree.heading("#0", text="Macro")
         self.tree.heading("eventos", text="Acoes")
         self.tree.heading("duracao", text="Duracao (s)")
+        self.tree.heading("espera", text="Espera")
         self.tree.heading("atalho", text="Atalho")
-        self.tree.column("#0", width=220)
-        self.tree.column("eventos", width=80, anchor=tk.CENTER)
-        self.tree.column("duracao", width=100, anchor=tk.CENTER)
-        self.tree.column("atalho", width=120, anchor=tk.CENTER)
+        self.tree.column("#0", width=190)
+        self.tree.column("eventos", width=70, anchor=tk.CENTER)
+        self.tree.column("duracao", width=90, anchor=tk.CENTER)
+        self.tree.column("espera", width=100, anchor=tk.CENTER)
+        self.tree.column("atalho", width=110, anchor=tk.CENTER)
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self.tree.bind("<<TreeviewSelect>>", lambda _e: self._update_button_states())
 
@@ -82,23 +84,29 @@ class MacroRecorderApp:
         self.tree.configure(yscrollcommand=scrollbar.set)
         scrollbar.pack(side=tk.LEFT, fill=tk.Y)
 
-        # Botoes
-        btn_frame = ttk.Frame(top)
-        btn_frame.pack(fill=tk.X, pady=(10, 0))
+        # Botoes - linha 1: gravar e executar
+        btn_row1 = ttk.Frame(top)
+        btn_row1.pack(fill=tk.X, pady=(10, 0))
 
-        self.btn_new = ttk.Button(btn_frame, text="Nova Macro", command=self._on_new)
-        self.btn_record = ttk.Button(btn_frame, text="Gravar", command=self._on_record)
-        self.btn_stop = ttk.Button(btn_frame, text="Parar", command=self._on_stop)
-        self.btn_play = ttk.Button(btn_frame, text="Executar", command=self._on_play)
-        self.btn_rename = ttk.Button(btn_frame, text="Renomear", command=self._on_rename)
-        self.btn_delete = ttk.Button(btn_frame, text="Excluir", command=self._on_delete)
-        self.btn_edit = ttk.Button(btn_frame, text="Editar/Revisar", command=self._on_edit)
-        self.btn_hotkey = ttk.Button(btn_frame, text="Definir Atalho", command=self._on_set_hotkey)
+        self.btn_new = ttk.Button(btn_row1, text="Nova Macro", command=self._on_new)
+        self.btn_record = ttk.Button(btn_row1, text="Gravar", command=self._on_record)
+        self.btn_stop = ttk.Button(btn_row1, text="Parar", command=self._on_stop)
+        self.btn_play = ttk.Button(btn_row1, text="Executar", command=self._on_play)
 
-        for b in (
-            self.btn_new, self.btn_record, self.btn_stop, self.btn_play,
-            self.btn_rename, self.btn_delete, self.btn_edit, self.btn_hotkey,
-        ):
+        for b in (self.btn_new, self.btn_record, self.btn_stop, self.btn_play):
+            b.pack(side=tk.LEFT, padx=3)
+
+        # Botoes - linha 2: gerenciar a macro selecionada
+        btn_row2 = ttk.Frame(top)
+        btn_row2.pack(fill=tk.X, pady=(6, 0))
+
+        self.btn_rename = ttk.Button(btn_row2, text="Renomear", command=self._on_rename)
+        self.btn_delete = ttk.Button(btn_row2, text="Excluir", command=self._on_delete)
+        self.btn_edit = ttk.Button(btn_row2, text="Editar/Revisar", command=self._on_edit)
+        self.btn_wait = ttk.Button(btn_row2, text="Modo de Espera", command=self._on_toggle_wait_mode)
+        self.btn_hotkey = ttk.Button(btn_row2, text="Definir Atalho", command=self._on_set_hotkey)
+
+        for b in (self.btn_rename, self.btn_delete, self.btn_edit, self.btn_wait, self.btn_hotkey):
             b.pack(side=tk.LEFT, padx=3)
 
         self._update_button_states()
@@ -110,9 +118,15 @@ class MacroRecorderApp:
                 macro = self.manager.get(name)
             except Exception:
                 continue
+            espera = "Inteligente" if macro.wait_mode == WAIT_MODE_SMART else "Tempo fixo"
             self.tree.insert(
                 "", tk.END, iid=name, text=name,
-                values=(len(macro.events), f"{macro.total_duration():.2f}", macro.hotkey or "-"),
+                values=(
+                    len(macro.events),
+                    f"{macro.total_duration():.2f}",
+                    espera,
+                    macro.hotkey or "-",
+                ),
             )
         if select_name and self.tree.exists(select_name):
             self.tree.selection_set(select_name)
@@ -133,6 +147,7 @@ class MacroRecorderApp:
         self.btn_rename.config(state=tk.DISABLED if busy or not has_selection else tk.NORMAL)
         self.btn_delete.config(state=tk.DISABLED if busy or not has_selection else tk.NORMAL)
         self.btn_edit.config(state=tk.DISABLED if busy or not has_selection else tk.NORMAL)
+        self.btn_wait.config(state=tk.DISABLED if busy or not has_selection else tk.NORMAL)
         self.btn_hotkey.config(state=tk.DISABLED if busy or not has_selection else tk.NORMAL)
 
     def _set_status(self, status: tuple[str, str]) -> None:
@@ -258,6 +273,26 @@ class MacroRecorderApp:
             return
         macro = self.manager.get(name)
         MacroEditWindow(self.root, self.manager, macro, on_saved=lambda: self._refresh_list(select_name=name))
+
+    def _on_toggle_wait_mode(self) -> None:
+        name = self._selected_name()
+        if not name:
+            return
+        macro = self.manager.get(name)
+        atual = macro.wait_mode
+        usar_inteligente = messagebox.askyesno(
+            "Modo de Espera",
+            f"Macro: {name}\n"
+            f"Modo atual: {'Inteligente' if atual == WAIT_MODE_SMART else 'Tempo fixo'}\n\n"
+            "SIM = Espera inteligente (recomendado)\n"
+            "     Aguarda o programa terminar de processar antes de cada acao.\n"
+            "     Os tempos gravados viram apenas referencia.\n\n"
+            "NAO = Tempo fixo\n"
+            "     Reproduz exatamente os intervalos que foram gravados.",
+        )
+        macro.wait_mode = WAIT_MODE_SMART if usar_inteligente else WAIT_MODE_FIXED
+        self.manager.save(macro)
+        self._refresh_list(select_name=name)
 
     def _on_set_hotkey(self) -> None:
         name = self._selected_name()

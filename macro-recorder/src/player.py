@@ -15,9 +15,11 @@ from models import (
     EVENT_KEY_UP,
     EVENT_MOUSE_DOWN,
     EVENT_MOUSE_UP,
+    WAIT_MODE_SMART,
     Macro,
     MacroEvent,
 )
+from waiting import plan_wait, wait_until_ready
 
 
 class MacroPlayer:
@@ -56,12 +58,12 @@ class MacroPlayer:
             if start_delay > 0:
                 self._sleep(start_delay)
             total = len(macro.events)
+            smart = macro.wait_mode == WAIT_MODE_SMART
             for _ in range(max(1, repeat)):
                 for index, event in enumerate(macro.events):
                     if self._stop_flag.is_set():
                         return
-                    if event.delay > 0:
-                        self._sleep(event.delay)
+                    self._wait_before(event, smart)
                     if self._stop_flag.is_set():
                         return
                     self._execute(event)
@@ -71,6 +73,19 @@ class MacroPlayer:
             self._playing = False
             if on_finished:
                 on_finished()
+
+    def _wait_before(self, event: MacroEvent, smart: bool) -> None:
+        """Espera antes de executar a acao.
+
+        Em modo inteligente, o tempo gravado serve de referencia: apos uma
+        espera minima, a macro so segue quando o programa em foco parar de
+        sinalizar que esta ocupado (ou quando o limite maximo estourar).
+        """
+        use_smart, min_wait, max_wait = plan_wait(event.delay, smart)
+        if min_wait > 0:
+            self._sleep(min_wait)
+        if use_smart and not self._stop_flag.is_set():
+            wait_until_ready(max_wait=max_wait, is_cancelled=self._stop_flag.is_set)
 
     def _sleep(self, seconds: float) -> None:
         # Divide o sleep em pequenos passos para permitir interrupcao rapida.

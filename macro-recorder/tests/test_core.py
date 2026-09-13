@@ -12,6 +12,35 @@ from models import Macro, MacroEvent, EVENT_KEY_DOWN, EVENT_KEY_UP  # noqa: E402
 from storage import MacroStorage, sanitize_filename  # noqa: E402
 from macro_manager import MacroManager  # noqa: E402
 from keymap import vk_to_name, name_to_vk  # noqa: E402
+from waiting import plan_wait, SMART_BASE_WAIT, SMART_MAX_FLOOR  # noqa: E402
+
+
+def test_plan_wait_intervalos_curtos_sao_ritmo_de_digitacao():
+    # Soltar/pressionar teclas de um atalho: reproduz o tempo gravado.
+    usar_smart, min_wait, max_wait = plan_wait(0.02, smart=True)
+    assert usar_smart is False
+    assert min_wait == 0.02 and max_wait == 0.02
+
+
+def test_plan_wait_esperas_longas_viram_inteligentes():
+    # 0,8s gravados = o usuario esperou o programa processar.
+    usar_smart, min_wait, max_wait = plan_wait(0.8, smart=True)
+    assert usar_smart is True
+    assert min_wait == SMART_BASE_WAIT
+    assert max_wait >= SMART_MAX_FLOOR  # tolera o projeto demorar bem mais
+
+
+def test_plan_wait_espera_maxima_acompanha_o_tempo_gravado_mas_tem_teto():
+    _, _, max_curto = plan_wait(1.0, smart=True)
+    _, _, max_longo = plan_wait(30.0, smart=True)
+    assert max_longo > max_curto      # gravou mais, tolera esperar mais
+    assert max_longo <= 120.0         # mas nunca trava indefinidamente
+
+
+def test_plan_wait_modo_fixo_preserva_os_tempos_gravados():
+    usar_smart, min_wait, max_wait = plan_wait(2.5, smart=False)
+    assert usar_smart is False
+    assert min_wait == 2.5 and max_wait == 2.5
 
 
 def test_keymap_letters_and_digits():
@@ -99,6 +128,10 @@ def test_macro_manager_validations():
 
 
 if __name__ == "__main__":
+    test_plan_wait_intervalos_curtos_sao_ritmo_de_digitacao()
+    test_plan_wait_esperas_longas_viram_inteligentes()
+    test_plan_wait_espera_maxima_acompanha_o_tempo_gravado_mas_tem_teto()
+    test_plan_wait_modo_fixo_preserva_os_tempos_gravados()
     test_keymap_letters_and_digits()
     test_keymap_numpad_and_unknown()
     test_macro_roundtrip_json()

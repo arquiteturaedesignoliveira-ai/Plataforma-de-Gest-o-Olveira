@@ -23,6 +23,13 @@ VALID_EVENT_TYPES = {
     EVENT_MOUSE_UP,
 }
 
+# Como esperar entre as acoes na reproducao:
+#   "smart" -> aguarda o programa ficar pronto (tempo gravado e so referencia)
+#   "fixed" -> reproduz exatamente os tempos gravados
+WAIT_MODE_SMART = "smart"
+WAIT_MODE_FIXED = "fixed"
+VALID_WAIT_MODES = (WAIT_MODE_SMART, WAIT_MODE_FIXED)
+
 SCHEMA_VERSION = 1
 
 
@@ -61,7 +68,8 @@ class Macro:
 
     name: str
     events: List[MacroEvent] = field(default_factory=list)
-    hotkey: Optional[str] = None            # ex: "ctrl+alt+1" (uso futuro)
+    hotkey: Optional[str] = None            # ex: "ctrl+alt+1"
+    wait_mode: str = WAIT_MODE_SMART
     created_at: float = field(default_factory=time.time)
     updated_at: float = field(default_factory=time.time)
     schema_version: int = SCHEMA_VERSION
@@ -70,6 +78,7 @@ class Macro:
         return {
             "name": self.name,
             "hotkey": self.hotkey,
+            "wait_mode": self.wait_mode,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
             "schema_version": self.schema_version,
@@ -78,10 +87,14 @@ class Macro:
 
     @staticmethod
     def from_dict(data: Dict[str, Any]) -> "Macro":
+        wait_mode = data.get("wait_mode", WAIT_MODE_SMART)
+        if wait_mode not in VALID_WAIT_MODES:
+            wait_mode = WAIT_MODE_SMART
         return Macro(
             name=data["name"],
             events=[MacroEvent.from_dict(e) for e in data.get("events", [])],
             hotkey=data.get("hotkey"),
+            wait_mode=wait_mode,
             created_at=float(data.get("created_at", time.time())),
             updated_at=float(data.get("updated_at", time.time())),
             schema_version=int(data.get("schema_version", SCHEMA_VERSION)),

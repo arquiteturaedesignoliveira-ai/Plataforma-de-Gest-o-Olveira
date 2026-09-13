@@ -40,6 +40,8 @@ O código é dividido em camadas independentes, como pedido:
 | `src/player.py`       | Sistema de reprodução: executa os eventos respeitando delays. |
 | `src/storage.py`      | Armazenamento: cada macro é um arquivo `.json` na biblioteca.  |
 | `src/macro_manager.py`| Gerenciamento (CRUD) das macros, com validações.                |
+| `src/waiting.py`      | Espera inteligente: detecta quando o programa alvo está ocupado.|
+| `src/keymap.py`       | Conversão tecla física ⇄ texto do JSON.                        |
 | `src/hotkeys.py`      | Atalhos globais do Windows para executar macros diretamente.   |
 | `src/models.py`       | Estruturas de dados (`Macro`, `MacroEvent`) e serialização.     |
 
@@ -48,6 +50,42 @@ O código é dividido em camadas independentes, como pedido:
 `storage.py` e `macro_manager.py` usam apenas a biblioteca padrão do
 Python, o que permite testá-los sem instalar dependência alguma (veja
 `tests/test_core.py`).
+
+## Espera inteligente (em vez de tempo fixo)
+
+O tempo que um programa leva para concluir uma operação **varia de projeto
+para projeto**. Reproduzir a macro com os tempos exatos da gravação dispara
+a ação seguinte cedo demais em um projeto pesado — e desperdiça segundos em
+um projeto leve.
+
+Por isso cada macro tem um **modo de espera** (botão *Modo de Espera*):
+
+| Modo | Comportamento |
+|------|----------------|
+| **Inteligente** (padrão) | O tempo gravado é só referência. Antes de cada ação, a macro espera o programa em foco parar de sinalizar que está ocupado. |
+| **Tempo fixo** | Reproduz exatamente os intervalos gravados. |
+
+Como o modo inteligente sabe que o programa está ocupado, sem usar API nem
+plugin do programa alvo (`src/waiting.py`):
+
+1. **A janela em primeiro plano responde a mensagens do Windows?** Enquanto
+   processa uma operação pesada, o loop de mensagens do programa trava — é
+   o mesmo sinal que faz o Windows exibir "Não respondendo".
+2. **O cursor está no estado de espera** (ampulheta / círculo girando)?
+
+Enquanto qualquer um dos dois indicar "ocupado", a macro aguarda. Detalhes:
+
+- Intervalos curtos (< 0,25s) são ritmo de digitação, não espera por
+  operação: continuam sendo reproduzidos como gravados, sem verificação.
+- O programa precisa ficar pronto por 0,25s contínuos, para a macro não
+  disparar durante uma pausa momentânea do processamento.
+- Há um **limite máximo** de espera (o maior entre 10s e 5× o tempo
+  gravado, com teto de 120s), para a macro nunca travar indefinidamente.
+
+**Limitação:** se o programa fizer o trabalho em uma thread de fundo e
+mantiver a interface respondendo normalmente, esses dois sinais não detectam
+nada, e a macro segue com a espera mínima. Nesse caso, use *Tempo fixo* para
+aquela macro específica.
 
 ## Formato da macro (JSON)
 
